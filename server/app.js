@@ -38,7 +38,8 @@ function createApp() {
   const cvJson = express.json({ limit: "4mb" });
   app.use((req, res, next) => {
     if (req.path.startsWith("/api/careers/apply")) return cvJson(req, res, next);
-    if (req.path.startsWith("/api/expenses") || req.path.startsWith("/api/team/payroll")) return receiptJson(req, res, next);
+    if (req.path.startsWith("/api/expenses")) return cvJson(req, res, next);
+    if (req.path.startsWith("/api/team/payroll") || req.path.startsWith("/api/team/extras")) return receiptJson(req, res, next);
     return smallJson(req, res, next);
   });
   app.use(h(auth.loadUser));

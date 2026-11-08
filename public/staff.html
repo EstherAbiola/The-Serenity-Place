@@ -188,6 +188,24 @@ section.on{display:block}
 .wbar div{height:100%;background:var(--gold);border-radius:99px}
 .welcome input{padding:9px 10px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(0,0,0,.15);color:#fff;width:120px}
 .welcome input::placeholder{color:rgba(255,255,255,.6)}
+/* celebrations */
+.welcome.bday{background:radial-gradient(circle at 85% 0%,rgba(229,169,62,.4),transparent 50%),linear-gradient(135deg,#7a4a2a,#3d4f27)}
+.welcome .confetti{position:absolute;left:0;right:0;top:0;height:120px;pointer-events:none;overflow:hidden;z-index:0;-webkit-mask-image:linear-gradient(#000 40%,transparent);mask-image:linear-gradient(#000 40%,transparent)}
+.welcome .confetti i{position:absolute;width:7px;height:12px;border-radius:2px;opacity:.7;animation:fall 5s linear infinite}
+@keyframes fall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(130px) rotate(400deg)}}
+@media (prefers-reduced-motion: reduce){.confetti i{animation:none}}
+.wishes{display:grid;gap:6px;margin-top:10px}
+.wish{background:rgba(255,255,255,.12);border-radius:10px;padding:8px 12px;font-size:13.5px}
+.wish b{color:var(--gold)}
+.celebrate{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+.celebrate h3{font-size:22px;display:flex;align-items:center;gap:8px}
+.celebrate .bp{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.celebrate .bp:last-child{border-bottom:0}
+.flag{background:var(--red-l);color:var(--red);border-radius:12px;padding:12px 14px;font-size:13.5px}
+.flag b{color:var(--red)}
+.warnbox{background:var(--amber-l);color:var(--amber);border-radius:12px;padding:12px 14px;font-size:13.5px;display:grid;gap:8px}
+.warnbox textarea{width:100%;padding:10px;border:1.5px solid var(--amber);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
+.req:after{content:" *";color:var(--red)}
 .pfoot{text-align:center;font-size:12px;color:var(--muted);padding:26px 16px 30px;border-top:1px solid var(--line);margin-top:30px;line-height:1.6}
 .pfoot b{color:var(--heading);font-weight:600}
 @media(max-width:720px){.pfoot{padding-bottom:90px}}
@@ -258,6 +276,7 @@ section.on{display:block}
         <div class="yo">Pristine Living. Peaceful Stays. · Ìtura àti Àlàáfíà.</div>
         <div class="panel" id="shiftCard"></div>
       </div>
+      <div class="celebrate hide" id="celebrate"></div>
       <div class="h"><div><h2>Today at Serenity Place</h2><div class="sub" id="todayDate"></div></div><button class="btn ghost" data-refresh>Refresh</button></div>
       <div class="grid" id="todayStats"></div>
       <div class="h" style="margin-top:22px"><h2 style="font-size:22px">Expected arrivals</h2></div>
@@ -338,6 +357,22 @@ section.on{display:block}
       <div class="period"><input type="month" id="payMonth"><button class="btn" id="payPrepare">Prepare this month's payroll</button><span id="payDl"></span></div>
       <div class="grid" id="payStats"></div>
       <div class="list" id="payList" style="margin-top:10px"></div>
+      <h3 class="h3s">Bonuses &amp; off-cycle payments</h3>
+      <div class="sub" style="margin-bottom:8px" id="xSub">Bonuses, quarterly payments and target rewards, paid outside the monthly salary.</div>
+      <form class="set-card" id="xForm">
+        <b>Add a payment</b>
+        <div class="row">
+          <div class="field"><label>For</label><select name="user_id"></select></div>
+          <div class="field"><label>Type</label><select name="kind"><option value="bonus">Bonus</option><option value="quarterly">Quarterly payment</option><option value="target">Target reward</option><option value="other">Other payment</option></select></div>
+          <div class="field"><label>Period</label><input name="period" placeholder="e.g. Q4 2026"></div>
+          <div class="field"><label>Amount (₦)</label><input name="amount" inputmode="numeric" required></div>
+        </div>
+        <div class="field"><label>What is it for?</label><input name="reason" placeholder="e.g. Hit November collection target" required></div>
+        <button class="btn" style="justify-self:start">Add payment</button>
+      </form>
+      <div class="grid" id="xStats" style="margin-top:10px"></div>
+      <div class="list" id="xList" style="margin-top:10px"></div>
+      <div class="dl" style="margin-top:8px"><a class="btn ghost" href="/api/team/extras.csv">Download bonuses &amp; off-cycle payments (Excel/CSV)</a></div>
       <div id="payDetailsWrap" class="hide">
         <h3 class="h3s">Salaries &amp; bank details</h3>
         <div class="sub" style="margin-bottom:8px">Set each person's agreed monthly salary. Only you can see and change these.</div>
@@ -391,7 +426,18 @@ section.on{display:block}
           <div class="field"><label>Paid to</label><input name="paid_to" placeholder="e.g. Mr Bayo (electrician)"></div>
           <div class="field"><label>Paid by</label><select name="method"><option value="cash">Cash</option><option value="transfer">Bank transfer</option><option value="pos">POS</option></select></div>
         </div>
-        <div class="field"><label>Receipt photo (optional)</label><input type="file" name="receipt" accept="image/*" capture="environment"></div>
+        <div class="f2">
+          <div class="field"><label id="itemLbl">Item (what was fixed or bought)</label><input name="item" list="itemList" placeholder="e.g. Ceiling fan, Water pump"><datalist id="itemList"></datalist></div>
+          <div class="field"><label id="rcptLbl">Receipt photo</label><input type="file" name="receipt" accept="image/*" capture="environment"></div>
+        </div>
+        <div class="warnbox hide" id="repeatBox"></div>
+        <div id="workBox" class="set-card" style="background:var(--sand)">
+          <b>Work done &amp; sign-off</b>
+          <div class="sub">For repairs and maintenance: upload the signed job card or work-done note, and confirm the work was tested.</div>
+          <div class="field"><label id="docLbl">Work-done / completion document (photo or PDF)</label><input type="file" name="work_doc" accept="image/*,application/pdf"></div>
+          <label class="toggle"><input type="checkbox" name="completion_confirmed"> I confirm this work is complete, tested and working</label>
+          <div class="f2"><div class="field"><label id="signLbl">Signed off by</label><input name="confirmed_by" placeholder="Full name"></div><div class="field"><label>Note (optional)</label><input name="completion_note" placeholder="e.g. Tested for 30 minutes, working"></div></div>
+        </div>
         <div class="err" id="expErr"></div>
         <button class="btn gold" style="justify-content:center;padding:12px">Save expense</button>
       </form>
@@ -442,7 +488,9 @@ section.on{display:block}
       <form class="set-card" id="setRevTarget"><div class="row"><div class="field"><label>Default monthly revenue target (₦)</label><input name="amount" inputmode="numeric" placeholder="e.g. 3000000"></div><button class="btn">Save</button></div>
         <div class="sub">Used in the monthly profit statement. You can also set a different target for a single month on the Dashboard.</div></form>
       <h3 class="h3s">Expense approvals</h3>
-      <form class="set-card" id="setGeneral"><div class="row"><div class="field"><label>Manager expenses above this need your approval (₦)</label><input name="expense_approval_limit" inputmode="numeric"></div><button class="btn">Save</button></div></form>
+      <form class="set-card" id="setGeneral"><div class="row"><div class="field"><label>Manager expenses above this need your approval (₦)</label><input name="expense_approval_limit" inputmode="numeric"></div>
+        <div class="field"><label>Flag a repeat repair if the same item in the same room was fixed within (days)</label><input name="repeat_window_days" type="number" min="1" max="365"></div><button class="btn">Save</button></div>
+        <div class="sub">Repeat repairs always come to you for review, whatever the amount, with the earlier fix shown side by side.</div></form>
     </section>
 
     <section id="s-team">
@@ -550,11 +598,17 @@ async function loadShiftCard(){
   const h=+new Intl.DateTimeFormat('en-GB',{hour:'numeric',hour12:false,timeZone:'Africa/Lagos'}).format(new Date());
   const greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const ROLE={owner:'Owner',manager:'Manager',staff:'Front desk team'};
-  $('#welcomeHi').textContent=`${greet}, ${ME.name.split(' ')[0]}`;
+  const bd=me.birthday||{};
+  $('#welcome').classList.toggle('bday',!!bd.is_today);
+  $('#welcomeHi').textContent=bd.is_today?`Happy birthday, ${ME.name.split(' ')[0]}!`:`${greet}, ${ME.name.split(' ')[0]}`;
+  const conf=$('#welcome .confetti'); if(conf) conf.remove();
+  if(bd.is_today){ const c=document.createElement('div'); c.className='confetti'; const cols=['#e5a93e','#e9784d','#fff','#cfdcb9'];
+    c.innerHTML=Array.from({length:22},(_,i)=>`<i style="left:${(i*37)%100}%;background:${cols[i%4]};animation-delay:${(i%9)*-0.7}s;top:${-(i%5)*20}px"></i>`).join(''); $('#welcome').prepend(c); }
   $('#welcomeMeta').textContent=`${ROLE[ME.role]||ME.role} · ${new Date(me.today+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`;
   const next=me.shifts[0];
   const t=me.target, pctv=t.amount?Math.min(1,t.collected/t.amount):0;
-  $('#shiftCard').innerHTML=`<div class="wcard">
+  $('#shiftCard').innerHTML=(bd.is_today?`<div class="wcard" style="grid-column:1/-1"><div class="lbl">From the team</div>
+      ${bd.wishes.length?`<div class="wishes">${bd.wishes.map(w=>`<div class="wish"><b>${esc(w.from_name)}:</b> ${esc(w.message)}</div>`).join('')}</div>`:'<div class="small">Your teammates\' wishes will appear here today.</div>'}</div>`:'')+`<div class="wcard">
       <div class="lbl">My shift</div>
       <div class="big">${me.clocked_in?'Clocked in since '+new Date(me.clocked_in.since).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'Not clocked in'}</div>
       <div class="small">${next?`Next on the rota: ${esc(next.name)} · ${fmt(next.date)} ${esc(next.start)}–${esc(next.end)}`:'No shifts on the rota for you yet.'}</div>
@@ -589,6 +643,7 @@ function showShiftSummary(r){
 }
 async function loadToday(){
   loadShiftCard().catch(()=>{});
+  loadCelebrations().catch(()=>{});
   const d=await api('/staff/overview'); TODAY=d.today;
   $('#todayDate').textContent=new Date(d.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const expected=d.arrivals.filter(b=>['pending','confirmed'].includes(b.status)).length;
@@ -749,6 +804,8 @@ async function loadExpenses(){
     f.category.innerHTML=expMeta.categories.map(c=>`<option>${esc(c)}</option>`).join('');
     f.room_id.innerHTML='<option value="">Not for a room</option>'+expMeta.rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
     f.spent_on.value=expMeta.today; f.spent_on.max=expMeta.today;
+    $('#itemList').innerHTML=expMeta.items.map(i=>`<option value="${esc(i)}">`).join('');
+    expRules();
   }
   $('#expSub').textContent=ME.role==='owner'?'Log every cost as it happens, with a photo of the receipt. Approve manager expenses waiting for you below.':`Log every cost as it happens, with a photo of the receipt. Expenses over ${money(expMeta.approval_limit)} need the owner's approval.`;
   if(!expP) expP=periodPicker($('#expPeriod'),()=>loadExpenses());
@@ -762,10 +819,14 @@ async function loadExpenses(){
   const EB={approved:'confirmed',pending:'pending',rejected:'no_show'};
   $('#expList').innerHTML=listOr(d.expenses,e=>`<div class="bk">
     <div class="row"><div><div class="nm">${money(e.amount)} · ${esc(e.category)}</div><div class="meta">${fmt(e.spent_on)}${e.room?' · '+esc(e.room):''}${e.paid_to?' · paid to '+esc(e.paid_to):''}${e.method?' · '+esc(METHOD[e.method]||e.method):''}</div></div>
-      <span class="badge b-${EB[e.status]}">${e.status==='pending'?'Waiting':e.status==='approved'?'Approved':'Rejected'}</span></div>
-    <div>${esc(e.description)}</div>
+      <span class="badge b-${EB[e.status]}">${e.status==='pending'?(e.repeat_of?'Repeat · review':'Waiting'):e.status==='approved'?'Approved':'Rejected'}</span></div>
+    <div>${e.item?`<b>${esc(e.item)}</b> · `:''}${esc(e.description)}</div>
+    ${e.previous?`<div class="flag"><b>Repeat repair.</b> Same item in this room was paid for on ${fmt(e.previous.spent_on)}: ${esc(e.previous.description)} (${money(e.previous.amount)}${e.previous.confirmed_by?', signed off by '+esc(e.previous.confirmed_by):''}${e.previous.has_work_doc?`, <a href="/api/expenses/${e.previous.id}/work-doc" target="_blank" rel="noopener">earlier work-done doc</a>`:''}).<br><b>Reason given:</b> ${esc(e.repeat_reason||'—')}</div>`:''}
+    ${e.completion_confirmed?`<div class="meta" style="color:var(--green)">✓ Signed off as complete and working by ${esc(e.confirmed_by)}${e.completion_note?' · '+esc(e.completion_note):''}</div>`:''}
     <div class="meta">Logged by ${esc(e.created_by||'—')}${e.reviewed_by?` · ${e.status} by ${esc(e.reviewed_by)}`:''}${e.review_note?' · '+esc(e.review_note):''}</div>
     <div class="acts">${e.has_receipt?`<a class="btn ghost" href="/api/expenses/${e.id}/receipt" target="_blank" rel="noopener">View receipt</a>`:''}
+      ${e.has_work_doc?`<a class="btn ghost" href="/api/expenses/${e.id}/work-doc" target="_blank" rel="noopener">Work-done document</a>`:''}
+      ${e.room_id?`<button class="btn ghost" data-act="roomHistory" data-id="${e.room_id}">${esc(e.room)} history</button>`:''}
       ${ME.role==='owner'&&e.status==='pending'?`<button class="btn" data-act="expApprove" data-id="${e.id}">Approve</button><button class="btn red" data-act="expReject" data-id="${e.id}">Reject</button>`:''}</div>
   </div>`,'No expenses in this period.');
 }
@@ -781,12 +842,16 @@ function shrinkImage(file){ return new Promise((resolve,reject)=>{
 $('#expForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#expErr').textContent=''; const btn=f.querySelector('button'); btn.disabled=true;
   try{
     const file=f.receipt.files[0]; const receipt=file?await shrinkImage(file):null;
-    const r=await post('/expenses',{spent_on:f.spent_on.value,amount:f.amount.value,category:f.category.value,description:f.description.value,room_id:f.room_id.value||null,paid_to:f.paid_to.value,method:f.method.value,receipt});
-    ['amount','description','paid_to'].forEach(n=>f[n].value=''); f.receipt.value='';
-    $('#expErr').innerHTML=`<span class="ok" style="display:inline-block">${r.needs_approval?'Saved. It is waiting for the owner\'s approval.':'Expense saved.'}</span>`;
+    const doc=f.work_doc.files[0]; let work_doc=null;
+    if(doc){ if(doc.type==='application/pdf'){ if(doc.size>1.4*1024*1024) throw new Error('The PDF is larger than 1.4 MB. Please send a smaller file or a photo.'); work_doc=await readFileURL(doc); } else work_doc=await shrinkImage(doc); }
+    const rr=$('#repeatBox textarea');
+    const r=await post('/expenses',{spent_on:f.spent_on.value,amount:f.amount.value,category:f.category.value,description:f.description.value,room_id:f.room_id.value||null,paid_to:f.paid_to.value,method:f.method.value,receipt,
+      item:f.item.value,work_doc,work_doc_name:doc?doc.name:null,completion_confirmed:f.completion_confirmed.checked,confirmed_by:f.confirmed_by.value,completion_note:f.completion_note.value,repeat_reason:rr?rr.value:''});
+    ['amount','description','paid_to','item','completion_note'].forEach(n=>f[n].value=''); f.receipt.value=''; f.work_doc.value=''; f.completion_confirmed.checked=false; $('#repeatBox').classList.add('hide');
+    $('#expErr').innerHTML=`<span class="ok" style="display:inline-block">${r.repeat?'Saved as a repeat repair. The owner will review it.':r.needs_approval?'Saved. It is waiting for the owner\'s approval.':'Expense saved.'}</span>`;
     setTimeout(()=>{ $('#expErr').textContent=''; },4000);
     loadExpenses();
-  }catch(err){ $('#expErr').textContent=err.message; }
+  }catch(err){ $('#expErr').textContent=err.message; if(/already paid for/.test(err.message)) checkRepeat(); }
   btn.disabled=false; };
 
 /* ---------- settings (owner) ---------- */
@@ -833,7 +898,7 @@ function renderSettings(){
       <button type="button" class="btn ghost" data-addbed="${r.id}" style="padding:6px 10px">+ Bed</button></div>
   </div>`; }).join('');
   $('#addRoom').room_type_id.innerHTML=types.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
-  $('#setGeneral').expense_approval_limit.value=SET.expense_approval_limit;
+  $('#setGeneral').expense_approval_limit.value=SET.expense_approval_limit; $('#setGeneral').repeat_window_days.value=SET.repeat_window_days;
 }
 async function saveSet(path,body,msg){ setErr(''); try{ SET=await post(path,body); renderSettings(); flash(msg||'Saved.'); }catch(err){ setErr(err.message); renderSettings(); } }
 function flash(m){ const n=document.createElement('div'); n.className='ok'; n.textContent=m; n.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.2)'; document.body.appendChild(n); setTimeout(()=>n.remove(),2200); }
@@ -845,7 +910,7 @@ $('#s-settings').addEventListener('submit',e=>{ const f=e.target; e.preventDefau
   if(f.dataset.roomform) return saveSet('/owner/rooms/'+f.dataset.roomform,{name:f.name.value,room_type_id:f.room_type_id.value,gender:f.gender.value,active:f.active.checked},'Room saved.');
   if(f.dataset.reserveform) return saveSet(`/owner/rooms/${f.dataset.reserveform}/reserve`,{reserve:f.reserve.value},'Walk-in reserve updated.');
   if(f.id==='addRoom') return saveSet('/owner/rooms',{name:f.name.value,room_type_id:f.room_type_id.value,gender:f.gender.value,beds:f.beds.value,reserve:f.reserve.value},'Room added.').then(()=>{ if(!$('#setErr').textContent) f.reset(); });
-  if(f.id==='setGeneral') return saveSet('/owner/settings/general',{expense_approval_limit:f.expense_approval_limit.value},'Approval limit saved.');
+  if(f.id==='setGeneral') return saveSet('/owner/settings/general',{expense_approval_limit:f.expense_approval_limit.value,repeat_window_days:f.repeat_window_days.value},'Saved.');
 });
 $('#s-settings').addEventListener('change',e=>{ const s=e.target.closest('[data-bed]'); if(!s) return;
   const v=s.value; saveSet('/owner/beds/'+s.dataset.bed,{active:v!=='off',online:v==='online'},'Bed updated.'); });
@@ -856,6 +921,87 @@ $('#s-settings').addEventListener('click',e=>{
       async f=>{ SET=await post(`/owner/rooms/${r.id}/beds`,{label:f.get('label'),online:!!f.get('online')}); renderSettings(); flash('Bed added.'); }); }
 });
 
+/* ---------- celebrations (birthdays) ---------- */
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const bdLabel=md=>md?`${+md.slice(3)} ${MONTHS[+md.slice(0,2)-1]}`:'Not set';
+const CAKE='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16v-7a2 2 0 00-2-2H6a2 2 0 00-2 2zM4 16c2 1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 4 0M12 12V8M12 5.5a1 1 0 01-1-1c0-1 1-2.5 1-2.5s1 1.5 1 2.5a1 1 0 01-1 1z"/></svg>';
+async function loadCelebrations(){
+  const d=await api('/team/birthdays'); const el=$('#celebrate');
+  const canSet=ME.role!=='staff';
+  const today=d.today_birthdays.filter(p=>p.user_id!==ME.id);
+  const show=today.length||d.upcoming.length||canSet||!(d.mine&&d.mine.birthday);
+  el.classList.toggle('hide',!show); if(!show) return;
+  el.innerHTML=`<h3>${CAKE} Celebrations</h3>
+    ${today.map(p=>`<div class="bp"><div><b>It's ${esc(p.name)}'s birthday today!</b><div class="sub">${p.wishes.length} wish${p.wishes.length===1?'':'es'} so far</div></div>
+      <button class="btn ${p.i_wished?'ghost':'gold'}" data-act="wish" data-id="${p.user_id}" data-name="${esc(p.name)}">${p.i_wished?'Edit my wishes':'Send wishes'}</button></div>`).join('')}
+    ${d.upcoming.length?`<div class="bp"><div><b>Coming up</b><div class="sub">${d.upcoming.map(p=>`${esc(p.name.split(' ')[0])} · ${bdLabel(p.birthday)} (${p.days===1?'tomorrow':'in '+p.days+' days'})`).join(' &nbsp;·&nbsp; ')}</div></div></div>`:''}
+    ${!(d.mine&&d.mine.birthday)?`<div class="bp"><div class="sub">Add your birthday so the team can celebrate with you.</div><button class="btn ghost" data-act="myBirthday">Add my birthday</button></div>`:''}
+    ${canSet?`<div class="bp"><div class="sub">Set or correct team members' birthdays.</div><button class="btn ghost" data-act="teamBirthdays">Team birthdays</button></div>`:''}`;
+}
+function birthdayPicker(md){
+  const m=md?+md.slice(0,2):'', dd=md?+md.slice(3):'';
+  return `<div class="f2"><div class="field"><label>Day</label><select name="bday"><option value="">—</option>${Array.from({length:31},(_,i)=>`<option ${i+1===dd?'selected':''}>${i+1}</option>`).join('')}</select></div>
+    <div class="field"><label>Month</label><select name="bmonth"><option value="">—</option>${MONTHS.map((x,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${x}</option>`).join('')}</select></div></div>`;
+}
+const readBirthday=f=>{ const d=f.get('bday'), m=f.get('bmonth'); return d&&m?`${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`:''; };
+
+/* ---------- bonuses & off-cycle payments ---------- */
+async function loadExtras(){
+  const team=(await api('/team/rota?start='+TODAY)).team;
+  const f=$('#xForm'); f.user_id.innerHTML=team.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
+  $('#xSub').textContent=ME.role==='owner'?'Bonuses, quarterly payments and target rewards, paid outside the monthly salary. Payments you add are approved straight away.':'Bonuses, quarterly payments and target rewards, paid outside the monthly salary. The owner approves each one before it is paid.';
+  const d=await api('/team/extras');
+  $('#xStats').innerHTML=`<div class="stat"><b>${money(d.totals.pending)}</b><span>Waiting for owner approval</span></div><div class="stat"><b>${money(d.totals.to_pay)}</b><span>Approved, still to pay</span></div>`;
+  const B={pending:['b-pending','Waiting approval'],approved:['b-checked_in','Approved · to pay'],paid:['b-confirmed','Paid'],rejected:['b-cancelled','Rejected']};
+  $('#xList').innerHTML=listOr(d.items.slice(0,40),x=>`<div class="bk"><div class="row"><div><div class="nm">${esc(x.name)} · ${money(x.amount)}</div>
+      <div class="meta">${esc(x.kind_label)}${x.period?' · '+esc(x.period):''} · ${esc(x.reason)}</div>
+      <div class="meta">Added by ${esc(x.created_by_name||'—')}${x.approved_by_name?` · ${x.status==='rejected'?'rejected':'approved'} by ${esc(x.approved_by_name)}`:''}${x.review_note?' · '+esc(x.review_note):''}${x.status==='paid'?` · paid ${new Date(x.paid_at).toLocaleDateString('en-GB')} (${esc(x.method)}${x.reference?' · '+esc(x.reference):''})`:''}</div></div>
+      <span class="badge ${B[x.status][0]}">${B[x.status][1]}</span></div>
+    <div class="acts">${ME.role==='owner'&&x.status==='pending'?`<button class="btn" data-act="xApprove" data-id="${x.id}">Approve</button><button class="btn red" data-act="xReject" data-id="${x.id}">Reject</button>`:''}
+      ${x.status==='approved'?`<button class="btn gold" data-act="xPay" data-id="${x.id}" data-name="${esc(x.name)}" data-amount="${x.amount}">Mark as paid</button>`:''}
+      ${x.has_receipt?`<a class="btn ghost" href="/api/team/extras/${x.id}/receipt" target="_blank" rel="noopener">View receipt</a>`:''}</div></div>`,'No bonuses or off-cycle payments yet.');
+}
+$('#xForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target;
+  try{ const r=await post('/team/extras',{user_id:f.user_id.value,kind:f.kind.value,period:f.period.value,amount:f.amount.value,reason:f.reason.value});
+    f.amount.value=''; f.reason.value=''; flash(r.status==='pending'?'Added. Waiting for the owner to approve.':'Added and approved.'); loadExtras(); }catch(err){ flash(err.message); } };
+
+/* ---------- expenses: evidence & repeat checks ---------- */
+const readFileURL=file=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Could not read that file.')); r.readAsDataURL(file); });
+let repeatState={matches:[]};
+function expRules(){
+  const f=$('#expForm'); if(!expMeta) return;
+  const work=expMeta.work_categories.includes(f.category.value), mgr=ME.role!=='owner';
+  $('#workBox').classList.toggle('hide',!work);
+  $('#itemLbl').classList.toggle('req',work); $('#rcptLbl').classList.toggle('req',mgr);
+  $('#docLbl').classList.toggle('req',work&&mgr); $('#signLbl').classList.toggle('req',work&&mgr);
+  if(work&&!f.confirmed_by.value) f.confirmed_by.value=ME.name;
+}
+let repeatT;
+function checkRepeat(){ clearTimeout(repeatT); repeatT=setTimeout(async()=>{
+  const f=$('#expForm'), box=$('#repeatBox');
+  if(!f.room_id.value||!f.item.value.trim()){ repeatState={matches:[]}; box.classList.add('hide'); return; }
+  const r=await api(`/expenses/check-repeat?room_id=${f.room_id.value}&item=${encodeURIComponent(f.item.value.trim())}&category=${encodeURIComponent(f.category.value)}&spent_on=${f.spent_on.value}`);
+  repeatState=r;
+  if(!r.matches.length){ box.classList.add('hide'); return; }
+  const roomName=f.room_id.selectedOptions[0].textContent;
+  box.innerHTML=`<b>Possible repeat repair.</b> ${esc(f.item.value)} in ${esc(roomName)} was already paid for in the last ${r.window_days} days:
+    ${r.matches.map(m=>`<div class="wish" style="background:var(--surface);color:var(--ink)">${fmt(m.spent_on)} · ${money(m.amount)} · ${esc(m.description)}${m.paid_to?' · paid to '+esc(m.paid_to):''}${m.confirmed_by?' · signed off by '+esc(m.confirmed_by):''}
+      ${m.has_work_doc?` · <a href="/api/expenses/${m.id}/work-doc" target="_blank" rel="noopener">work-done doc</a>`:''}${m.has_receipt?` · <a href="/api/expenses/${m.id}/receipt" target="_blank" rel="noopener">receipt</a>`:''}</div>`).join('')}
+    <div class="field"><label class="req" style="color:var(--amber)">What went wrong? Why is it being fixed again?</label><textarea name="repeat_reason" rows="3" placeholder="e.g. Different fault: the motor burnt out; the electrician confirms the earlier repair held"></textarea></div>
+    <div>This expense will go to the owner for review.</div>`;
+  box.classList.remove('hide'); },350); }
+['category','room_id','item','spent_on'].forEach(n=>{ const el=$('#expForm')[n]; el.addEventListener('change',()=>{ expRules(); checkRepeat(); }); if(n==='item') el.addEventListener('input',checkRepeat); });
+
+async function openRoomHistory(roomId){
+  const h=await api('/expenses/room-history/'+roomId);
+  modal(`<h3>${esc(h.room)} · maintenance history</h3><p class="sub">${h.expenses.length} expense${h.expenses.length===1?'':'s'} · ${money(h.total)} approved in total</p>
+    <div class="list">${h.expenses.map(e=>`<div class="bk" style="padding:10px 12px"><div class="nm" style="font-size:14px">${fmt(e.spent_on)} · ${esc(e.item||e.category)} · ${money(e.amount)}</div><div class="meta">${esc(e.description)}${e.confirmed_by?' · signed off by '+esc(e.confirmed_by):''} · ${esc(e.status)}${e.repeat_of?' · <b style="color:var(--red)">repeat</b>':''}</div></div>`).join('')||'<div class="empty">Nothing logged for this room yet.</div>'}</div>
+    <div style="margin-top:12px"><button class="btn ghost" data-close>Close</button></div>`);
+}
+
+document.addEventListener('submit',async e=>{ const f=e.target.closest('[data-bdform]'); if(!f) return; e.preventDefault();
+  try{ await post('/team/birthday/'+f.dataset.bdform,{birthday:readBirthday(new FormData(f))}); f.querySelector('b .sub').textContent='· '+bdLabel(readBirthday(new FormData(f))); flash('Birthday saved.'); loadCelebrations().catch(()=>{}); }catch(err){ flash(err.message); } });
+
 /* ---------- rota ---------- */
 let rotaStart=null, attP=null;
 function mondayOf(iso){ const d=new Date(iso+'T00:00:00Z'); const k=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-k); return d.toISOString().slice(0,10); }
@@ -864,9 +1010,10 @@ async function loadRota(){
   const placeholder=me.settings.shift_times_are_placeholders;
   $('#rotaSub').textContent=(ME.role==='staff'?'Your upcoming shifts.':'Plan who works when, and see who clocked in.')+(placeholder?' Shift times are placeholders until the owner sets them in Settings.':'');
   const ms=(await api('/team/me')).shifts;
-  const slips=(await api('/team/my-payslips')).payslips;
+  const pay=await api('/team/my-payslips'); const slips=pay.payslips;
   $('#myShifts').innerHTML=`<h3 class="h3s" style="margin-top:0">My shifts</h3>`+listOr(ms,s=>`<div class="bk"><div class="row"><div><div class="nm">${esc(s.name)}</div><div class="meta">${fmt(s.date)} · ${esc(s.start)}–${esc(s.end)}</div></div></div></div>`,'No shifts for you in the next 2 weeks.')+
-    `<h3 class="h3s">My payslips</h3>`+listOr(slips,p=>`<div class="bk"><div class="row"><div><div class="nm">${esc(p.month_label)} · ${money(p.net)}</div><div class="meta">Basic ${money(p.base)}${p.deductions?' · deductions '+money(p.deductions):''}${p.bonus?' · bonus '+money(p.bonus):''}${p.note?' · '+esc(p.note):''}</div></div><span class="badge ${p.status==='paid'?'b-confirmed':'b-pending'}">${p.status==='paid'?'Paid':'Due'}</span></div></div>`,'No payslips yet.');
+    `<h3 class="h3s">My payslips</h3>`+listOr(slips,p=>`<div class="bk"><div class="row"><div><div class="nm">${esc(p.month_label)} · ${money(p.net)}</div><div class="meta">Basic ${money(p.base)}${p.deductions?' · deductions '+money(p.deductions):''}${p.bonus?' · bonus '+money(p.bonus):''}${p.note?' · '+esc(p.note):''}</div></div><span class="badge ${p.status==='paid'?'b-confirmed':'b-pending'}">${p.status==='paid'?'Paid':'Due'}</span></div></div>`,'No payslips yet.')+
+    (pay.extras.length?`<h3 class="h3s">My bonuses &amp; other payments</h3>`+pay.extras.map(x=>`<div class="bk"><div class="row"><div><div class="nm">${esc(x.kind_label)} · ${money(x.amount)}</div><div class="meta">${x.period?esc(x.period)+' · ':''}${esc(x.reason)}</div></div><span class="badge ${x.status==='paid'?'b-confirmed':'b-checked_in'}">${x.status==='paid'?'Paid':'Approved'}</span></div></div>`).join(''):'');
   if(ME.role==='staff'){ $('#rotaManage').classList.add('hide'); return; }
   $('#rotaManage').classList.remove('hide');
   if(!rotaStart) rotaStart=mondayOf(TODAY);
@@ -921,6 +1068,7 @@ async function loadPayroll(){
     <div class="acts">${i.status==='due'?`${ME.role==='owner'?`<button class="btn ghost" data-act="payAdjust" data-id="${i.id}" data-d="${i.deductions}" data-b="${i.bonus}" data-n="${esc(i.note||'')}" data-base="${i.base}">Deductions / bonus</button>`:''}<button class="btn gold" data-act="payMark" data-id="${i.id}" data-name="${esc(i.name)}" data-net="${i.net}">Mark as paid</button>`:''}
       ${i.has_receipt?`<a class="btn ghost" href="/api/team/payroll/${i.id}/receipt" target="_blank" rel="noopener">View receipt</a>`:''}</div></div>`,
     'No payroll for this month yet. Tap "Prepare this month\'s payroll" to create it from each person\'s agreed salary.');
+  loadExtras().catch(err=>flash(err.message));
   $('#payDetailsWrap').classList.toggle('hide',ME.role!=='owner');
   if(ME.role==='owner'){ const pd=await api('/team/pay-details');
     $('#payDetails').innerHTML=pd.people.map(p=>`<form class="set-card" data-paydetails="${p.id}"><b>${esc(p.name)} <span class="sub" style="font-weight:400">· ${esc(p.role)}</span></b>
@@ -971,12 +1119,13 @@ async function loadStatement(){
     line('Actual revenue (money in)',money(s.revenue)),
     s.target?line('Against target',`${s.vs_target>=0?'+':''}${money(s.vs_target)} (${Math.round(s.target_pct*100)}%)`):'',
     line('Salaries paid','−'+money(s.salaries_paid)),
+    line('Bonuses &amp; off-cycle payments','−'+money(s.extras_paid||0)),
     line('Operating expenses','−'+money(s.expenses)),
     line('Profit',money(s.profit),true),
     s.salaries_due?`<div class="sub" style="margin-top:6px">${money(s.salaries_due)} of salaries are still due for ${esc(s.month_label)}. Profit after paying them: <b>${money(s.profit_if_all_salaries_paid)}</b>.</div>`:''
   ].join('');
-  $('#stTrend').innerHTML=`<tr><th style="text-align:left;padding:8px">Month</th><th>Target</th><th>Revenue</th><th>Salaries</th><th>Expenses</th><th>Profit</th></tr>`+
-    s.trend.map(t=>`<tr><td style="text-align:left;padding:8px 10px;font-weight:600">${esc(t.month_label)}</td><td>${t.target?money(t.target):'—'}</td><td>${money(t.revenue)}</td><td>${money(t.salaries_paid)}</td><td>${money(t.expenses)}</td><td style="font-weight:700;color:${t.profit<0?'var(--red)':'var(--heading)'}">${money(t.profit)}</td></tr>`).join('');
+  $('#stTrend').innerHTML=`<tr><th style="text-align:left;padding:8px">Month</th><th>Target</th><th>Revenue</th><th>Salaries</th><th>Bonuses</th><th>Expenses</th><th>Profit</th></tr>`+
+    s.trend.map(t=>`<tr><td style="text-align:left;padding:8px 10px;font-weight:600">${esc(t.month_label)}</td><td>${t.target?money(t.target):'—'}</td><td>${money(t.revenue)}</td><td>${money(t.salaries_paid)}</td><td>${money(t.extras_paid||0)}</td><td>${money(t.expenses)}</td><td style="font-weight:700;color:${t.profit<0?'var(--red)':'var(--heading)'}">${money(t.profit)}</td></tr>`).join('');
   $('#stDl').href='/api/owner/export/statement.csv?month='+m;
 }
 $('#stMonth').onchange=loadStatement;
@@ -1014,10 +1163,14 @@ $('#setRevTarget').onsubmit=async e=>{ e.preventDefault(); try{ await post('/own
 function openAccount(){
   actionForm('My account',`<p class="sub">${esc(ME.name)} · ${esc(ME.email)} · ${esc(ME.role)}</p>
     <button type="button" class="btn ghost" id="acctLogout" style="justify-self:start">Log out</button>
-    <div class="field"><label>Current password</label><input name="current" type="password" autocomplete="current-password" required></div>
+    <b style="margin-top:6px">My birthday</b>${birthdayPicker(ME_TEAM&&ME_TEAM.birthday?ME_TEAM.birthday.birthday:'')}
+    <button type="button" class="btn ghost" id="saveBday" style="justify-self:start">Save birthday</button>
+    <b style="margin-top:6px">Change password</b>
+    <div class="field"><label>Current password</label><input name="current" type="password" autocomplete="current-password"></div>
     <div class="field"><label>New password (8+ characters)</label><input name="next" type="password" minlength="8" autocomplete="new-password" required></div>`,'Change password',
     async f=>{ await post('/auth/password',{current_password:f.get('current'),new_password:f.get('next')}); flash('Password changed.'); });
   $('#acctLogout').onclick=async()=>{ await post('/auth/logout'); location.reload(); };
+  $('#saveBday').onclick=async()=>{ try{ await post('/team/birthday',{birthday:readBirthday(new FormData($('#actForm')))}); ME_TEAM=null; flash('Birthday saved.'); closeModal(); if($('#tabs .on').dataset.tab==='today') loadToday(); }catch(err){ $('#actErr').textContent=err.message; } };
 }
 $('#whoName').onclick=openAccount;
 $('#whoName').onkeydown=e=>{ if(e.key==='Enter') openAccount(); };
@@ -1084,6 +1237,17 @@ document.addEventListener('click',async e=>{
         async f=>{ await post(`/staff/bookings/${ref}/cancel`,{reason:f.get('reason')}); return {ref,msg:'Booking cancelled.'}; });
     if(act==='expApprove') return actionForm('Approve expense','<div class="field"><label>Note (optional)</label><input name="note"></div>','Approve',async f=>{ await post(`/expenses/${el.dataset.id}/approve`,{note:f.get('note')}); });
     if(act==='expReject') return actionForm('Reject expense','<p class="sub">The manager will see it as rejected. Say why.</p><div class="field"><label>Reason</label><input name="note" required></div>','Reject',async f=>{ await post(`/expenses/${el.dataset.id}/reject`,{note:f.get('note')}); });
+    if(act==='wish') return actionForm(`Wish ${esc(el.dataset.name)} a happy birthday`,'<div class="field"><label>Your message</label><textarea name="message" rows="3" maxlength="300" required placeholder="Happy birthday! Wishing you a wonderful year ahead."></textarea></div>','Send wishes',
+        async f=>{ await post(`/team/birthdays/${el.dataset.id}/wish`,{message:f.get('message')}); flash('Wishes sent.'); });
+    if(act==='myBirthday'){ openAccount(); return; }
+    if(act==='teamBirthdays'){ const d=await api('/team/birthdays');
+      return modal(`<h3>Team birthdays</h3><p class="sub">Day and month only. Everyone in the team sees upcoming birthdays.</p><div class="list">${d.people.map(p=>`<form class="set-card" data-bdform="${p.user_id}"><b>${esc(p.name)} <span class="sub" style="font-weight:400">· ${bdLabel(p.birthday)}</span></b>${birthdayPicker(p.birthday)}<button class="btn ghost" style="justify-self:start">Save</button></form>`).join('')}</div><div style="margin-top:12px"><button class="btn ghost" data-close>Close</button></div>`); }
+    if(act==='roomHistory') return openRoomHistory(el.dataset.id);
+    if(act==='xApprove') return actionForm('Approve payment','<div class="field"><label>Note (optional)</label><input name="note"></div>','Approve',async f=>{ await post(`/team/extras/${el.dataset.id}/approve`,{note:f.get('note')}); loadExtras(); });
+    if(act==='xReject') return actionForm('Reject payment','<div class="field"><label>Reason</label><input name="note" required></div>','Reject',async f=>{ await post(`/team/extras/${el.dataset.id}/reject`,{note:f.get('note')}); loadExtras(); });
+    if(act==='xPay') return actionForm(`Pay ${esc(el.dataset.name)} · ${money(+el.dataset.amount)}`,`<div class="field"><label>Paid by</label><select name="method"><option value="transfer">Bank transfer</option><option value="cash">Cash</option></select></div>
+        <div class="field"><label>Transaction reference</label><input name="reference"></div><div class="field"><label>Receipt or screenshot (optional)</label><input type="file" name="receipt" accept="image/*"></div>`,'Mark as paid',
+        async f=>{ const file=f.get('receipt'); const receipt=file&&file.size?await shrinkImage(file):null; await post(`/team/extras/${el.dataset.id}/pay`,{method:f.get('method'),reference:f.get('reference'),receipt}); flash('Marked as paid.'); loadExtras(); });
     if(act==='setTarget') return actionForm(`Target for ${esc(el.dataset.name)}`,`<p class="sub">Money collected at the front desk in ${esc($('#tgtMonth').value)}. Enter 0 to remove.</p><div class="field"><label>Target (₦)</label><input name="amount" inputmode="numeric" value="${esc(el.dataset.cur)}" required></div>`,'Save',
         async f=>{ await post('/team/targets',{user_id:el.dataset.id,month:$('#tgtMonth').value,amount:f.get('amount')}); });
     if(act==='payAdjust') return actionForm('Deductions and bonus',`<p class="sub">Basic salary ${money(+el.dataset.base)}.</p>

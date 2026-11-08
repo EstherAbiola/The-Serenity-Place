@@ -225,3 +225,33 @@ CREATE TABLE IF NOT EXISTS email_log (
   error      TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Birthday wishes from teammates.
+CREATE TABLE IF NOT EXISTS birthday_wishes (
+  id           SERIAL PRIMARY KEY,
+  user_id      INTEGER NOT NULL REFERENCES users(id),   -- whose birthday
+  from_user_id INTEGER NOT NULL REFERENCES users(id),
+  year         INTEGER NOT NULL,
+  message      TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Bonuses and other payments outside the monthly salary.
+CREATE TABLE IF NOT EXISTS extra_payments (
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(id),
+  kind        TEXT NOT NULL,                       -- bonus, quarterly, target, other
+  period      TEXT,                                -- e.g. 'Q4 2026', 'November 2026'
+  amount      INTEGER NOT NULL,
+  reason      TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'pending',     -- pending (owner to approve), approved (to pay), paid, rejected
+  created_by  INTEGER REFERENCES users(id),
+  approved_by INTEGER REFERENCES users(id),
+  paid_at     TIMESTAMPTZ,
+  method      TEXT,
+  reference   TEXT,
+  receipt     TEXT,
+  paid_by     INTEGER REFERENCES users(id),
+  review_note TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

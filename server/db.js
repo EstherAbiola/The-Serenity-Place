@@ -133,6 +133,25 @@ async function migrate() {
     .map((s) => s.replace(/--.*$/gm, "").trim())
     .filter(Boolean);
   for (const s of statements) await pool.query(s);
+  // Columns added after the first release (added only if missing).
+  const added = [
+    ["users", "birthday", "TEXT"],                         // 'MM-DD'
+    ["expenses", "item", "TEXT"],                          // what was fixed/bought, e.g. 'Ceiling fan'
+    ["expenses", "work_doc", "TEXT"],                      // completion / work-done document (data URL)
+    ["expenses", "work_doc_name", "TEXT"],
+    ["expenses", "completion_confirmed", "BOOLEAN"],
+    ["expenses", "confirmed_by", "TEXT"],
+    ["expenses", "completion_note", "TEXT"],
+    ["expenses", "repeat_of", "INTEGER"],                  // earlier expense for the same room + item
+    ["expenses", "repeat_reason", "TEXT"],
+  ];
+  for (const [table, col, type] of added) {
+    try {
+      await pool.query(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+    } catch (e) {
+      if (!/exist|duplicate/i.test(e.message)) throw e;
+    }
+  }
 }
 
 // Placeholder inventory and prices. Only inserted into an EMPTY database.

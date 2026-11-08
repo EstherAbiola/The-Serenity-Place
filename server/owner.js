@@ -150,6 +150,8 @@ async function monthFigures(month) {
   const { rows: pay } = await db.query("SELECT base, deductions, bonus, status FROM payroll WHERE month = $1", [month]);
   const salariesPaid = pay.filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.base) - Number(p.deductions) + Number(p.bonus), 0);
   const salariesDue = pay.filter((p) => p.status === "due").reduce((s, p) => s + Number(p.base) - Number(p.deductions) + Number(p.bonus), 0);
+  const { rows: xp } = await db.query("SELECT amount FROM extra_payments WHERE status = 'paid' AND paid_at >= $1 AND paid_at < $2", [lagosStart(start), lagosStart(end)]);
+  const extrasPaid = xp.reduce((s, x) => s + Number(x.amount), 0);
   const { rows: ex } = await db.query("SELECT category, amount FROM expenses WHERE status = 'approved' AND spent_on >= $1 AND spent_on < $2", [start, end]);
   const byCat = {};
   for (const e of ex) byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount);
@@ -160,9 +162,9 @@ async function monthFigures(month) {
   return {
     month, month_label: monthLabel(month), target: target || null, revenue,
     vs_target: target ? revenue - target : null, target_pct: target ? revenue / target : null,
-    salaries_paid: salariesPaid, salaries_due: salariesDue, expenses, expenses_by_category: byCat,
-    profit: revenue - salariesPaid - expenses,
-    profit_if_all_salaries_paid: revenue - salariesPaid - salariesDue - expenses,
+    salaries_paid: salariesPaid, salaries_due: salariesDue, extras_paid: extrasPaid, expenses, expenses_by_category: byCat,
+    profit: revenue - salariesPaid - extrasPaid - expenses,
+    profit_if_all_salaries_paid: revenue - salariesPaid - salariesDue - extrasPaid - expenses,
   };
 }
 
@@ -189,7 +191,7 @@ router.get("/export/statement.csv", OWNER, h(async (req, res) => {
   for (let i = 0; i < 12; i++) { rows.unshift(await monthFigures(m)); m = prevMonth(m); }
   sendCsv(res, `profit_statement_to_${month}.csv`, csv(rows, [
     { label: "Month", get: "month_label" }, { label: "Revenue target (NGN)", get: "target" }, { label: "Revenue (NGN)", get: "revenue" },
-    { label: "Vs target (NGN)", get: "vs_target" }, { label: "Salaries paid (NGN)", get: "salaries_paid" }, { label: "Salaries still due (NGN)", get: "salaries_due" },
+    { label: "Vs target (NGN)", get: "vs_target" }, { label: "Salaries paid (NGN)", get: "salaries_paid" }, { label: "Salaries still due (NGN)", get: "salaries_due" }, { label: "Bonuses & off-cycle (NGN)", get: "extras_paid" },
     { label: "Expenses (NGN)", get: "expenses" }, { label: "Profit (NGN)", get: "profit" },
   ]));
 }));
@@ -210,6 +212,7 @@ async function loadSettings() {
       rates: Object.fromEntries(rates.filter((x) => x.peak_period_id === p.id).map((x) => [x.room_type_id, Number(x.price)])),
     })),
     expense_approval_limit: Number(await getSetting("expense_approval_limit", "50000")),
+    repeat_window_days: Number(await getSetting("repeat_window_days", "30")),
   };
 }
 
@@ -218,6 +221,9 @@ router.get("/settings", OWNER, h(async (req, res) => res.json(await loadSettings
 router.post("/settings/general", OWNER, h(async (req, res) => {
   if (req.body?.expense_approval_limit != null) {
     await setSetting("expense_approval_limit", toInt(req.body.expense_approval_limit, { max: 100000000, name: "Approval limit" }));
+  }
+  if (req.body?.repeat_window_days != null) {
+    await setSetting("repeat_window_days", toInt(req.body.repeat_window_days, { min: 1, max: 365, name: "Repeat-repair window" }));
   }
   res.json(await loadSettings());
 }));
