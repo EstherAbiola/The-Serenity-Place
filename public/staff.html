@@ -5,25 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Front Desk · Serenity Place</title>
+<script>
+/* Light / dark theme: the visitor's saved choice, otherwise their device setting. Runs before paint. */
+(function(){ var t=null; try{ t=localStorage.getItem('sp-theme'); }catch(e){}
+  if(t!=='light'&&t!=='dark') t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  document.documentElement.setAttribute('data-theme',t); })();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--green:#5a7037;--green-d:#344323;--green-l:#e9eedf;--gold:#e5a93e;--coral:#e9784d;--cream:#faf7f0;--sand:#f2ecdf;--ink:#26301b;--muted:#6b7262;--line:#e2dccd;--red:#b4502b;--red-l:#fbe6dc;--amber:#8a5a0c;--amber-l:#fdf1dc;--blue:#2d5d8a;--blue-l:#e3edf6}
+:root{--surface:#fff;--heading:#344323;--res:#f3efe2;--hover-line:#c9cfb8;--green:#5a7037;--green-d:#344323;--green-l:#e9eedf;--gold:#e5a93e;--coral:#e9784d;--cream:#faf7f0;--sand:#f2ecdf;--ink:#26301b;--muted:#6b7262;--line:#e2dccd;--red:#b4502b;--red-l:#fbe6dc;--amber:#8a5a0c;--amber-l:#fdf1dc;--blue:#2d5d8a;--blue-l:#e3edf6}
+html[data-theme="dark"]{color-scheme:dark;--surface:#212a1b;--heading:#e9e3cd;--res:#2b3424;
+  --green:#6b8540;--green-l:#2c3823;--cream:#141911;--sand:#1b2216;--ink:#ebe7da;--muted:#a6ac9b;--line:#353f2d;
+  --red:#f0a07f;--red-l:#3b2419;--amber:#f0c46a;--amber-l:#3a2f17;--blue:#9cc3e6;--blue-l:#1f3142}
+html[data-theme="dark"] .c-confirmed{background:#3c4d2a}
+html[data-theme="dark"] .c-checked_in{background:#284057}
+html[data-theme="dark"] .c-checked_out,html[data-theme="dark"] .b-checked_out,html[data-theme="dark"] .b-expired,html[data-theme="dark"] .b-cancelled{background:#2c2f2a;color:#a9ada3}
+.theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;padding:0!important;border-radius:50%!important}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Montserrat,system-ui,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;padding-bottom:76px}
-h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;color:var(--green-d);font-weight:600;line-height:1.2}
+h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;color:var(--heading);font-weight:600;line-height:1.2}
 button,input,select,textarea{font:inherit}
 .wrap{max-width:1100px;margin:0 auto;padding:0 16px}
 .top{background:var(--green-d);color:#f3efe2;position:sticky;top:0;z-index:20}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;height:58px;gap:10px}
-.top img{height:36px;background:var(--cream);border-radius:50%;padding:2px}
+.top img{height:36px;background:#faf7f0;border-radius:50%;padding:2px}
 .top .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.06em;font-size:13px}
-.top .who{font-size:12.5px;opacity:.85;text-align:right}
-.top .who button{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;margin-left:8px}
+.top .who{font-size:12.5px;display:flex;align-items:center;gap:6px;min-width:0}
+.top .who #whoName{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+.top .brand{white-space:nowrap}
+.top .who button{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;flex:none}
 .tabs{display:flex;gap:4px;padding:12px 0 4px;overflow-x:auto}
 .tabs button{border:0;background:none;padding:9px 14px;border-radius:999px;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
 .tabs button.on{background:var(--green);color:#fff}
 @media(max-width:720px){
-  .tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;z-index:30}
+  .tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;z-index:30}
   .tabs button{padding:8px 8px;font-size:12px;border-radius:10px}
 }
 section{display:none;padding:14px 0 30px}
@@ -32,53 +47,54 @@ section.on{display:block}
 .h h2{font-size:28px}
 .sub{color:var(--muted);font-size:13px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
-.stat b{display:block;font-size:24px;color:var(--green-d)}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat b{display:block;font-size:24px;color:var(--heading)}
 .stat span{font-size:12.5px;color:var(--muted)}
 .stat small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
 .list{display:grid;gap:10px;margin-top:8px}
-.bk{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px}
+.bk{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px}
 .bk .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .bk .nm{font-weight:700;font-size:15.5px}
 .bk .meta{font-size:13px;color:var(--muted)}
 .bk .acts{display:flex;gap:6px;flex-wrap:wrap}
 .badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
-.b-confirmed{background:var(--green-l);color:var(--green-d)}
+.b-confirmed{background:var(--green-l);color:var(--heading)}
 .b-pending{background:var(--amber-l);color:var(--amber)}
 .b-checked_in{background:var(--blue-l);color:var(--blue)}
 .b-checked_out,.b-expired,.b-cancelled{background:#eee;color:#666}
 .b-no_show,.b-needs_attention{background:var(--red-l);color:var(--red)}
 .btn{border:0;cursor:pointer;font-weight:600;font-size:13px;padding:9px 14px;border-radius:999px;background:var(--green);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.btn.ghost{background:#fff;color:var(--green-d);border:1.5px solid var(--line)}
-.btn.gold{background:var(--gold);color:var(--green-d)}
-.btn.red{background:#fff;color:var(--red);border:1.5px solid #f0c9b8}
+.btn.ghost{background:var(--surface);color:var(--heading);border:1.5px solid var(--line)}
+.btn.gold{background:var(--gold);color:#344323}
+.btn.red{background:var(--surface);color:var(--red);border:1.5px solid var(--red-l)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.empty{color:var(--muted);font-size:14px;padding:16px;background:#fff;border:1px dashed var(--line);border-radius:14px;text-align:center}
-.card{background:#fff;border-radius:16px;padding:18px;border:1px solid var(--line)}
+.empty{color:var(--muted);font-size:14px;padding:16px;background:var(--surface);border:1px dashed var(--line);border-radius:14px;text-align:center}
+.card{background:var(--surface);border-radius:16px;padding:18px;border:1px solid var(--line)}
 .field{display:grid;gap:5px}
 .field label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--muted)}
-.field input,.field select,.field textarea{padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;width:100%}
+.field input,.field select,.field textarea{padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);width:100%}
 .field input:focus,.field select:focus{outline:none;border-color:var(--green)}
+.field input,.field select,.field textarea,#findQ,#boardStart{color:var(--ink)}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 @media(max-width:560px){.f3{grid-template-columns:1fr 1fr}.f3>:last-child{grid-column:1/-1}}
 .form{display:grid;gap:14px}
 .err{color:var(--red);font-size:13.5px;min-height:18px}
-.ok{background:var(--green-l);color:var(--green-d);padding:10px 12px;border-radius:10px;font-size:14px}
+.ok{background:var(--green-l);color:var(--heading);padding:10px 12px;border-radius:10px;font-size:14px}
 .sumbox{background:var(--sand);border-radius:12px;padding:12px 14px;font-size:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .daygrp{margin-top:18px}
 .daygrp h3{font-size:20px;margin-bottom:6px}
 /* board */
-.board{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px}
+.board{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .board table{border-collapse:collapse;font-size:12.5px;min-width:100%}
 .board th,.board td{border-bottom:1px solid var(--line);padding:0;text-align:center;white-space:nowrap}
 .board th{background:var(--sand);padding:8px 6px;font-weight:600;font-size:11.5px;position:sticky;top:0}
-.board td.bed{position:sticky;left:0;background:#fff;text-align:left;padding:6px 10px;font-weight:600;min-width:74px;z-index:1}
-.board tr.room td{background:var(--green-l);text-align:left;padding:7px 10px;font-weight:700;color:var(--green-d)}
+.board td.bed{position:sticky;left:0;background:var(--surface);text-align:left;padding:6px 10px;font-weight:600;min-width:74px;z-index:1}
+.board tr.room td{background:var(--green-l);text-align:left;padding:7px 10px;font-weight:700;color:var(--heading)}
 .cell{display:block;min-width:58px;height:34px;line-height:34px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;cursor:default}
-.c-free{background:#fff}
-.c-res{background:repeating-linear-gradient(45deg,#fff,#fff 5px,#f3efe2 5px,#f3efe2 10px)}
-.c-confirmed{background:#cfdcb9;color:var(--green-d);cursor:pointer}
+.c-free{background:var(--surface)}
+.c-res{background:repeating-linear-gradient(45deg,var(--surface),var(--surface) 5px,var(--res) 5px,var(--res) 10px)}
+.c-confirmed{background:#cfdcb9;color:var(--heading);cursor:pointer}
 .c-pending{background:var(--amber-l);color:var(--amber);cursor:pointer}
 .c-checked_in{background:#c8daea;color:var(--blue);cursor:pointer}
 .c-needs_attention,.c-no_show{background:var(--red-l);color:var(--red);cursor:pointer}
@@ -105,6 +121,7 @@ section.on{display:block}
 <body>
 
 <div id="loginView" class="login hide">
+  <div style="text-align:right;margin-bottom:8px"><button class="theme-btn" data-theme-toggle aria-label="Switch theme" style="border-color:var(--line);color:var(--heading);background:var(--surface)"></button></div>
   <img src="/assets/emblem.webp" alt="Serenity Place">
   <form class="card" id="loginForm">
     <h2 style="text-align:center">Front desk login</h2>
@@ -118,7 +135,7 @@ section.on{display:block}
 <div id="appView" class="hide">
   <div class="top"><div class="wrap">
     <div class="brand"><img src="/assets/emblem.webp" alt="">FRONT DESK</div>
-    <div class="who"><span id="whoName"></span><button id="logout">Log out</button></div>
+    <div class="who"><span id="whoName"></span><button id="logout">Log out</button><button class="theme-btn" data-theme-toggle aria-label="Switch theme"></button></div>
   </div></div>
   <div class="wrap">
     <nav class="tabs" id="tabs">
@@ -148,7 +165,7 @@ section.on{display:block}
 
     <section id="s-board">
       <div class="h"><div><h2>Beds</h2><div class="sub">Every bed for the next 7 nights. Tap a booked cell for details.</div></div>
-        <div style="display:flex;gap:8px;align-items:center"><input type="date" id="boardStart" style="padding:8px;border:1.5px solid var(--line);border-radius:10px"><button class="btn ghost" data-refresh>Refresh</button></div></div>
+        <div style="display:flex;gap:8px;align-items:center"><input type="date" id="boardStart" style="padding:8px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface)"><button class="btn ghost" data-refresh>Refresh</button></div></div>
       <div class="legend"><span><i class="c-free"></i>Free</span><span><i class="c-res"></i>Free · walk-in reserve</span><span><i class="c-confirmed"></i>Booked</span><span><i class="c-pending"></i>Unpaid</span><span><i class="c-checked_in"></i>Checked in</span><span><i class="c-needs_attention"></i>Needs attention</span></div>
       <div class="board" id="board"></div>
     </section>
@@ -185,7 +202,7 @@ section.on{display:block}
 
     <section id="s-find">
       <div class="h"><div><h2>Find a booking</h2><div class="sub">Search by reference, guest name or phone number.</div></div></div>
-      <input id="findQ" placeholder="e.g. SP-7KD2QF, Adaeze, 0803…" style="width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff">
+      <input id="findQ" placeholder="e.g. SP-7KD2QF, Adaeze, 0803…" style="width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface)">
       <div class="list" id="findList" style="margin-top:12px"></div>
     </section>
 
@@ -431,6 +448,15 @@ document.addEventListener('click',async e=>{
     if(act==='toggleUser'){ await post(`/staff/team/${el.dataset.id}/active`,{active:el.dataset.active==='1'}); return loadTeam(); }
   }catch(err){ modal(`<h3>Couldn't do that</h3><p class="err">${esc(err.message)}</p><button class="btn ghost" data-close>Close</button>`); }
 });
+
+
+/* ---------- theme toggle ---------- */
+function setTheme(t){ document.documentElement.setAttribute('data-theme',t); try{ localStorage.setItem('sp-theme',t); }catch(e){}
+  document.querySelectorAll('[data-theme-toggle]').forEach(b=>{ b.setAttribute('aria-label',t==='dark'?'Switch to light mode':'Switch to dark mode'); b.innerHTML=t==='dark'?SUN_ICON:MOON_ICON; }); }
+const SUN_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>';
+const MOON_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>';
+document.addEventListener('click',e=>{ if(e.target.closest('[data-theme-toggle]')) setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); });
+setTheme(document.documentElement.getAttribute('data-theme')||'light');
 
 /* ---------- start ---------- */
 api('/auth/me').then(r=>start(r.user)).catch(showLogin);
