@@ -18,6 +18,10 @@ Website and booking system for Serenity Place Residences.
 | `server/owner.js` | Owner dashboard, CSV exports, and settings (prices, peak periods, rooms, beds). |
 | `server/expenses.js` | Expense log with receipts and owner approval. |
 | `server/util.js` | Shared helpers (date ranges, CSV, settings). |
+| `server/team.js` | Rota, clock-in/out, attendance, targets, salaries and payroll. |
+| `server/careers.js` | Careers page API and the applications inbox. |
+| `server/email.js` | Emails through GoDaddy's built-in email gateway. |
+| `public/careers.html` | Public careers page at `/careers`. |
 | `server/db.js` | Database connection, setup and placeholder data. |
 | `server/schema.sql` | Database tables. |
 
@@ -30,6 +34,10 @@ Website and booking system for Serenity Place Residences.
 - Online bookings are **reservations paid on arrival** (cash, POS or transfer at the front desk). Staff record the payment, or mark a no-show to release the beds.
 
 Placeholder data (6 dorms, 40 beds, sample prices, one sample peak period) is created only in an empty database. It will be editable from the owner dashboard.
+
+## Emails
+
+Sent through GoDaddy Node.js Hosting's built-in gateway (`http://127.0.0.1:2525`), so no email account or keys are needed: reservation confirmations, payment receipts, application acknowledgements and payslips. Every attempt is recorded in the `email_log` table; outside GoDaddy they are logged as "skipped". Optional `NOTIFY_EMAIL` also sends the team an alert for new reservations and job applications.
 
 ## Settings
 
@@ -45,6 +53,8 @@ Optional settings (`.env.example`):
 | `DATABASE_URL` | Neon Postgres connection string, to keep data permanently. |
 | `SESSION_SECRET` | Keeps staff logged in across restarts. |
 | `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | Alternative to the setup code: creates the owner account on start. |
+| `NOTIFY_EMAIL` | Team inbox for new-reservation and new-application alerts. |
+| `CONTACT_PHONE`, `CONTACT_ADDRESS` | Shown at the bottom of emails. |
 
 ## API (so far)
 

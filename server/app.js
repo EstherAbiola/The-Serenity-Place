@@ -4,6 +4,7 @@ const express = require("express");
 const db = require("./db");
 const booking = require("./booking");
 const auth = require("./auth");
+const email = require("./email");
 // Wrap async handlers so errors reach the error handler.
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -34,7 +35,12 @@ function createApp() {
   // Small JSON bodies everywhere, except expenses which may carry a receipt photo.
   const smallJson = express.json({ limit: "50kb" });
   const receiptJson = express.json({ limit: "2mb" });
-  app.use((req, res, next) => (req.path.startsWith("/api/expenses") ? receiptJson : smallJson)(req, res, next));
+  const cvJson = express.json({ limit: "4mb" });
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/careers/apply")) return cvJson(req, res, next);
+    if (req.path.startsWith("/api/expenses") || req.path.startsWith("/api/team/payroll")) return receiptJson(req, res, next);
+    return smallJson(req, res, next);
+  });
   app.use(h(auth.loadUser));
 
   // Until the database is connected, API calls get a clear "try again shortly" answer.
@@ -69,6 +75,7 @@ function createApp() {
 
   api.post("/bookings", rateLimit({ windowMs: 10 * 60e3, max: 10 }), h(async (req, res) => {
     const result = await booking.createBooking(req.body || {}, { channel: "online" });
+    email.bookingConfirmation(await booking.getBooking(result.ref));
     res.status(201).json(result);
   }));
 
@@ -83,6 +90,7 @@ function createApp() {
   // Staff and owner login.
   api.post("/auth/login", rateLimit({ windowMs: 15 * 60e3, max: 10 }), h(auth.login));
   api.post("/auth/logout", auth.logout);
+  api.post("/auth/password", auth.requireRole(), h(auth.changePassword));
   api.get("/auth/setup", h(auth.setupStatus));
   api.post("/auth/setup", rateLimit({ windowMs: 15 * 60e3, max: 10 }), h(auth.setupOwner));
   api.get("/auth/me", (req, res) => (req.user ? res.json({ user: req.user }) : res.status(401).json({ error: "Not logged in." })));
@@ -91,6 +99,8 @@ function createApp() {
   api.use("/staff", require("./staff"));
   api.use("/owner", require("./owner"));
   api.use("/expenses", require("./expenses"));
+  api.use("/team", require("./team"));
+  api.use("/careers", require("./careers"));
 
   api.use((req, res) => res.status(404).json({ error: "Not found." }));
   app.use("/api", api);

@@ -137,6 +137,63 @@ router.get("/export/payments.csv", OWNER, h(async (req, res) => {
   ]));
 }));
 
+/* ------------------------------------------------------------------ profit statement */
+
+const monthOk = (m) => typeof m === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(m);
+const nextMonth = (m) => { const [y, mo] = m.split("-").map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`; };
+const prevMonth = (m) => { const [y, mo] = m.split("-").map(Number); return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`; };
+const monthLabel = (m) => new Date(m + "-15T12:00:00Z").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+
+async function monthFigures(month) {
+  const start = month + "-01", end = nextMonth(month) + "-01";
+  const { rows: rev } = await db.query("SELECT COALESCE(SUM(amount),0)::int AS n FROM payments WHERE status = 'success' AND created_at >= $1 AND created_at < $2", [lagosStart(start), lagosStart(end)]);
+  const { rows: pay } = await db.query("SELECT base, deductions, bonus, status FROM payroll WHERE month = $1", [month]);
+  const salariesPaid = pay.filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.base) - Number(p.deductions) + Number(p.bonus), 0);
+  const salariesDue = pay.filter((p) => p.status === "due").reduce((s, p) => s + Number(p.base) - Number(p.deductions) + Number(p.bonus), 0);
+  const { rows: ex } = await db.query("SELECT category, amount FROM expenses WHERE status = 'approved' AND spent_on >= $1 AND spent_on < $2", [start, end]);
+  const byCat = {};
+  for (const e of ex) byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount);
+  const expenses = ex.reduce((s, e) => s + Number(e.amount), 0);
+  const targetRow = await getSetting(`revenue_target_${month}`);
+  const target = targetRow != null ? Number(targetRow) : Number(await getSetting("monthly_revenue_target", "0"));
+  const revenue = Number(rev[0].n);
+  return {
+    month, month_label: monthLabel(month), target: target || null, revenue,
+    vs_target: target ? revenue - target : null, target_pct: target ? revenue / target : null,
+    salaries_paid: salariesPaid, salaries_due: salariesDue, expenses, expenses_by_category: byCat,
+    profit: revenue - salariesPaid - expenses,
+    profit_if_all_salaries_paid: revenue - salariesPaid - salariesDue - expenses,
+  };
+}
+
+router.get("/statement", OWNER, h(async (req, res) => {
+  const month = monthOk(req.query.month) ? req.query.month : require("./booking").todayLagos().slice(0, 7);
+  const current = await monthFigures(month);
+  const trend = [];
+  let m = month;
+  for (let i = 0; i < 6; i++) { trend.unshift(i === 0 ? current : await monthFigures(m)); m = prevMonth(m); }
+  res.json({ ...current, trend, default_target: Number(await getSetting("monthly_revenue_target", "0")) || null });
+}));
+
+router.post("/statement/target", OWNER, h(async (req, res) => {
+  const amount = toInt(req.body?.amount, { max: 10000000000, name: "Revenue target" });
+  if (req.body?.month && monthOk(req.body.month)) await setSetting(`revenue_target_${req.body.month}`, amount);
+  else await setSetting("monthly_revenue_target", amount);
+  res.json({ ok: true });
+}));
+
+router.get("/export/statement.csv", OWNER, h(async (req, res) => {
+  const month = monthOk(req.query.month) ? req.query.month : require("./booking").todayLagos().slice(0, 7);
+  const rows = [];
+  let m = month;
+  for (let i = 0; i < 12; i++) { rows.unshift(await monthFigures(m)); m = prevMonth(m); }
+  sendCsv(res, `profit_statement_to_${month}.csv`, csv(rows, [
+    { label: "Month", get: "month_label" }, { label: "Revenue target (NGN)", get: "target" }, { label: "Revenue (NGN)", get: "revenue" },
+    { label: "Vs target (NGN)", get: "vs_target" }, { label: "Salaries paid (NGN)", get: "salaries_paid" }, { label: "Salaries still due (NGN)", get: "salaries_due" },
+    { label: "Expenses (NGN)", get: "expenses" }, { label: "Profit (NGN)", get: "profit" },
+  ]));
+}));
+
 /* ------------------------------------------------------------------ settings */
 
 async function loadSettings() {
@@ -189,7 +246,7 @@ router.post("/room-types/:id", OWNER, h(async (req, res) => {
 async function savePeak(id, body) {
   const name = text(body.name, 100);
   const start = body.start_date, end = body.end_date;
-  if (!name) throw new BookingError("Give the peak period a name, e.g. Holy Ghost Congress.");
+  if (!name) throw new BookingError("Give the peak period a name, e.g. December holidays.");
   if (!isDate(start) || !isDate(end) || end < start) throw new BookingError("Choose a valid first and last night (last night on or after the first).");
   const rates = body.rates && typeof body.rates === "object" ? body.rates : {};
   return db.tx(async (c) => {

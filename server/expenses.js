@@ -9,7 +9,7 @@ const MANAGERS = requireRole("owner", "manager");
 const OWNER = requireRole("owner");
 const router = express.Router();
 
-const CATEGORIES = ["Maintenance & repairs", "Power & diesel", "Water", "Cleaning supplies", "Laundry & linen", "Security", "Internet & phone", "Salaries & wages", "Transport", "Other"];
+const CATEGORIES = ["Maintenance & repairs", "Power & diesel", "Water", "Cleaning supplies", "Laundry & linen", "Security", "Internet & phone", "Transport", "Other"]; // salaries go through Payroll
 const METHODS = ["cash", "transfer", "pos"];
 const MAX_RECEIPT_CHARS = 1_500_000; // about 1.1 MB image
 

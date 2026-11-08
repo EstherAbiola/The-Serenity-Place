@@ -131,7 +131,7 @@ async function migrate() {
 const SEED = {
   roomTypes: [
     { id: "dorm8", name: "Shared Dorm · 8 Bed", unit: "bed", base_price: 10000, capacity_label: "1 guest per bed", tag: "Best value", sort_order: 1,
-      description: "A clean, secure bunk in a shared room. Ideal for solo travellers, youth groups and programme attendees on a budget." },
+      description: "A clean, secure bunk in a shared room. Ideal for solo travellers, groups and anyone travelling on a budget." },
     { id: "dorm4", name: "Shared Dorm · 4 Bed", unit: "bed", base_price: 15000, capacity_label: "1 guest per bed", tag: "Popular", sort_order: 2,
       description: "A quieter shared room with fewer bunks. Good for small groups or friends travelling together." },
     { id: "private", name: "Private Standard Room", unit: "room", base_price: 30000, capacity_label: "Up to 2 guests", tag: "Coming soon", coming_soon: true, sort_order: 3,
@@ -149,7 +149,7 @@ const SEED = {
     ["Dorm F", "dorm4", "male", 4, 1],
   ],
   peaks: [
-    { name: "Holy Ghost Congress (placeholder dates)", start: "2026-12-07", end: "2026-12-13", rates: { dorm8: 15000, dorm4: 22000 } },
+    { name: "December peak (placeholder dates)", start: "2026-12-18", end: "2027-01-02", rates: { dorm8: 15000, dorm4: 22000 } },
   ],
 };
 
@@ -179,6 +179,20 @@ async function seed() {
       }
     }
     console.log("[db] Seeded placeholder rooms, beds and prices.");
+  }
+
+  // Placeholder job openings for the careers page (only when there are none yet).
+  const jobs = await pool.query("SELECT COUNT(*)::int AS n FROM jobs");
+  if (Number(jobs.rows[0].n) === 0) {
+    const roles = [
+      ["Cleaner / Housekeeper", "Keep rooms, bathrooms and shared areas spotless; change linen between guests.", "[Placeholder] Reliable, neat and able to work shifts."],
+      ["Front Desk / Admin Officer", "Welcome guests, check them in and out, take payments and keep records.", "[Placeholder] OND/HND or similar, good with people and a smartphone."],
+      ["Security Guard", "Protect guests, staff and property; control access at the gate.", "[Placeholder] Security experience preferred."],
+      ["Night Watchman", "Patrol the compound overnight and report anything unusual.", "[Placeholder] Able to work night shifts."],
+    ];
+    for (let i = 0; i < roles.length; i++) {
+      await pool.query("INSERT INTO jobs (title, description, requirements, sort_order) VALUES ($1,$2,$3,$4)", [...roles[i], i]);
+    }
   }
 
   // First owner account, from environment variables (never hard-coded).
