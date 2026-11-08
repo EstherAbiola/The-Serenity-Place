@@ -1,0 +1,14 @@
+{
+  "name": "serenity-place-residences",
+  "version": "1.0.0",
+  "description": "Serenity Place Residences website",
+  "main": "server.js",
+  "scripts": {
+    "build": "echo build",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

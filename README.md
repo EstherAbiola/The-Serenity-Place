@@ -26,3 +26,9 @@ e.g. `dorm8: "assets/photos/dorm8.jpg"`. Any photo left as `null` shows a brande
 ## Previewing online
 
 Turn on GitHub Pages under **Settings → Pages → Deploy from branch → main / (root)**.
+
+## Hosting on GoDaddy Node.js Hosting
+
+The repo includes `package.json` and a small `server.js` (no dependencies) so GoDaddy can run it.
+In GoDaddy Node.js Hosting choose **Connect GitHub**, pick this repository and the `main` branch, then **Import & Deploy**.
+To test locally: `npm start`, then open http://localhost:3000.
