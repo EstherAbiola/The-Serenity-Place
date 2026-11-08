@@ -105,6 +105,15 @@ function createApp() {
   api.use((req, res) => res.status(404).json({ error: "Not found." }));
   app.use("/api", api);
 
+  // "/staff/" and "/careers/" (with a trailing slash) go to the same page as "/staff" and "/careers".
+  app.use((req, res, next) => {
+    if (req.method === "GET" && req.path.length > 1 && req.path.endsWith("/") && !req.path.startsWith("/api/")) {
+      const q = req.originalUrl.slice(req.path.length);
+      return res.redirect(301, req.path.replace(/\/+$/, "") + q);
+    }
+    next();
+  });
+
   // Website files.
   const pub = path.join(__dirname, "..", "public");
   // Pages are always re-checked so updates show straight away; images can be cached for a day.
