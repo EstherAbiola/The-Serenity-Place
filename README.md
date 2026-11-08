@@ -20,6 +20,7 @@ Website and booking system for Serenity Place Residences.
 | `server/util.js` | Shared helpers (date ranges, CSV, settings). |
 | `server/team.js` | Rota, clock-in/out, attendance, targets, salaries and payroll. |
 | `server/careers.js` | Careers page API and the applications inbox. |
+| `server/hr.js` | Staff contracts and documents, renewals and history. |
 | `server/email.js` | Emails through GoDaddy's built-in email gateway. |
 | `public/careers.html` | Public careers page at `/careers`. |
 | `server/db.js` | Database connection, setup and placeholder data. |

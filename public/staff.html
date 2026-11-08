@@ -276,6 +276,7 @@ section.on{display:block}
         <div class="yo">Pristine Living. Peaceful Stays. · Ìtura àti Àlàáfíà.</div>
         <div class="panel" id="shiftCard"></div>
       </div>
+      <div class="flag hide" id="hrAlert" style="margin-bottom:12px"></div>
       <div class="celebrate hide" id="celebrate"></div>
       <div class="h"><div><h2>Today at Serenity Place</h2><div class="sub" id="todayDate"></div></div><button class="btn ghost" data-refresh>Refresh</button></div>
       <div class="grid" id="todayStats"></div>
@@ -496,6 +497,9 @@ section.on{display:block}
     <section id="s-team">
       <div class="h"><div><h2>Team</h2><div class="sub">Give staff and managers their own login. They should change the temporary password later.</div></div></div>
       <div class="list" id="teamList"></div>
+      <h3 class="h3s">Contracts &amp; documents</h3>
+      <div class="sub" style="margin-bottom:8px">Employment letters, contracts and other records for each person, kept for the company's reference. Documents are never deleted; old versions stay in each person's history.</div>
+      <div id="hrExpiring"></div>
       <form class="card form" id="teamForm" style="margin-top:16px">
         <h3 style="font-size:22px">Add a team member</h3>
         <div class="f2"><div class="field"><label>Name</label><input name="name" required></div><div class="field"><label>Email</label><input name="email" type="email" required></div></div>
@@ -641,8 +645,15 @@ function showShiftSummary(r){
     <p class="sub" style="margin-top:10px">Hand over the cash total above to the next shift or manager.</p>
     <div style="margin-top:14px"><button class="btn" data-close>Done</button></div>`);
 }
+async function loadHrAlert(){
+  if(ME.role!=='owner'){ $('#hrAlert').classList.add('hide'); return; }
+  const e=await api('/hr/expiring?days=30');
+  $('#hrAlert').classList.toggle('hide',!e.documents.length);
+  $('#hrAlert').innerHTML=`<b>Contracts to renew.</b> ${e.documents.map(x=>`${esc(x.user)}'s ${esc(x.title)} ${x.days_left<0?'expired on '+fmtY(x.expires_on):'ends '+fmtY(x.expires_on)}`).join('; ')}. <a href="#team">Open Team</a>`;
+}
 async function loadToday(){
   loadShiftCard().catch(()=>{});
+  loadHrAlert().catch(()=>{});
   loadCelebrations().catch(()=>{});
   const d=await api('/staff/overview'); TODAY=d.today;
   $('#todayDate').textContent=new Date(d.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -727,9 +738,56 @@ $('#findQ').oninput=()=>{ clearTimeout(findT); findT=setTimeout(async()=>{
 /* ---------- team ---------- */
 async function loadTeam(){
   const d=await api('/staff/team');
-  $('#teamList').innerHTML=d.users.map(u=>`<div class="bk"><div class="row"><div><div class="nm">${esc(u.name)}</div><div class="meta">${esc(u.email)} · ${esc(u.role)}</div></div>
-    ${u.role==='owner'?'<span class="badge b-confirmed">Owner</span>':`<div class="acts"><button class="btn ghost" data-act="resetPw" data-id="${u.id}" data-name="${esc(u.name)}">Reset password</button><button class="btn ${u.active?'red':'ghost'}" data-act="toggleUser" data-id="${u.id}" data-active="${u.active?0:1}">${u.active?'Deactivate':'Reactivate'}</button></div>`}</div></div>`).join('');
+  const docs=(await api('/hr/documents')).documents;
+  const count=uid=>docs.filter(x=>x.user_id===uid&&x.status==='active').length;
+  const warn=uid=>docs.some(x=>x.user_id===uid&&(x.expiry==='expired'||x.expiry==='soon'));
+  $('#teamList').innerHTML=d.users.map(u=>`<div class="bk"><div class="row"><div><div class="nm">${esc(u.name)}${u.active?'':' <span class="sub">(deactivated)</span>'}</div><div class="meta">${esc(u.email)} · ${esc(u.role)}</div></div>
+    <div class="acts"><button class="btn ghost" data-act="hrDocs" data-id="${u.id}" data-name="${esc(u.name)}">${warn(u.id)?'<span style="color:var(--red)">●</span> ':''}Documents (${count(u.id)})</button>
+    ${u.role==='owner'?'<span class="badge b-confirmed">Owner</span>':`<button class="btn ghost" data-act="resetPw" data-id="${u.id}" data-name="${esc(u.name)}">Reset password</button><button class="btn ${u.active?'red':'ghost'}" data-act="toggleUser" data-id="${u.id}" data-active="${u.active?0:1}">${u.active?'Deactivate':'Reactivate'}</button>`}</div></div></div>`).join('');
+  loadExpiring();
 }
+/* ---------- HR documents ---------- */
+let HR_TYPES=null;
+const fmtY=d=>new Date(d+'T12:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const expiryBadge=x=>x.status==='renewed'?'<span class="badge b-checked_out">Renewed</span>':x.status==='archived'?'<span class="badge b-cancelled">Archived</span>':
+  x.expiry==='expired'?`<span class="badge b-no_show">Expired ${-x.days_left} day${x.days_left===-1?'':'s'} ago</span>`:x.expiry==='soon'?`<span class="badge b-pending">Renew in ${x.days_left} day${x.days_left===1?'':'s'}</span>`:'<span class="badge b-confirmed">Active</span>';
+async function loadExpiring(){
+  const e=await api('/hr/expiring?days=60');
+  $('#hrExpiring').innerHTML=e.documents.length?`<div class="flag" style="margin-bottom:10px"><b>Needs renewal soon</b>${e.documents.map(x=>`<div style="margin-top:6px">${esc(x.user)} · ${esc(x.title)} · ${x.days_left<0?'expired '+fmtY(x.expires_on):'ends '+fmtY(x.expires_on)} <a href="#" data-act="hrDocs" data-id="${x.user_id}" data-name="${esc(x.user)}">Open</a></div>`).join('')}</div>`:'<div class="sub">No contracts expire in the next 60 days.</div>';
+}
+async function openDocs(uid,name){
+  if(!HR_TYPES) HR_TYPES=(await api('/hr/types')).types;
+  const docs=(await api('/hr/documents?user_id='+uid)).documents;
+  const card=x=>`<div class="bk" style="padding:12px"><div class="row"><div><div class="nm" style="font-size:15px">${esc(x.title)}</div>
+      <div class="meta">${esc(x.type_label)}${x.starts_on?' · from '+fmtY(x.starts_on):''}${x.expires_on?' · ends '+fmtY(x.expires_on):''} · uploaded ${new Date(x.created_at).toLocaleDateString('en-GB')} by ${esc(x.uploaded_by||'—')}</div>
+      ${x.notes?`<div class="meta">${esc(x.notes)}</div>`:''}</div>${expiryBadge(x)}</div>
+    <div class="acts"><a class="btn ghost" href="/api/hr/documents/${x.id}/file" target="_blank" rel="noopener">View</a>
+      ${x.status==='active'?`<button class="btn gold" data-act="hrRenew" data-id="${x.id}" data-uid="${uid}" data-name="${esc(name)}" data-type="${esc(x.doc_type)}" data-title="${esc(x.title)}">Renew / replace</button>
+      <button class="btn ghost" data-act="hrEdit" data-id="${x.id}" data-uid="${uid}" data-name="${esc(name)}" data-title="${esc(x.title)}" data-start="${x.starts_on||''}" data-end="${x.expires_on||''}" data-notes="${esc(x.notes||'')}">Edit dates</button>
+      <button class="btn red" data-act="hrArchive" data-id="${x.id}" data-uid="${uid}" data-name="${esc(name)}">Archive</button>`:''}
+      ${x.status==='archived'?`<button class="btn ghost" data-act="hrRestore" data-id="${x.id}" data-uid="${uid}" data-name="${esc(name)}">Restore</button>`:''}</div></div>`;
+  const active=docs.filter(x=>x.status==='active'), history=docs.filter(x=>x.status!=='active');
+  modal(`<h3>${esc(name)} · documents</h3>
+    <div class="list">${active.map(card).join('')||'<div class="empty">No documents yet.</div>'}</div>
+    ${history.length?`<details style="margin-top:10px"><summary class="sub" style="cursor:pointer">History: ${history.length} earlier or archived version${history.length>1?'s':''}</summary><div class="list" style="margin-top:8px">${history.map(card).join('')}</div></details>`:''}
+    ${docForm(uid,null)}
+    <div style="margin-top:12px"><button class="btn ghost" data-close>Close</button></div>`);
+}
+function docForm(uid,renew){
+  return `<form class="set-card" id="docForm" data-uid="${uid}" data-replaces="${renew?renew.id:''}" style="margin-top:14px"><b>${renew?'Upload the renewed '+esc(renew.title):'Upload a document'}</b>
+    <div class="f2"><div class="field"><label>Type</label><select name="doc_type">${Object.entries(HR_TYPES).map(([k,v])=>`<option value="${k}" ${renew&&renew.type===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      <div class="field"><label>Title</label><input name="title" value="${renew?esc(renew.title):''}" placeholder="e.g. Employment contract 2027"></div></div>
+    <div class="f2"><div class="field"><label>Starts</label><input type="date" name="starts_on"></div><div class="field"><label>Ends / renew by (optional)</label><input type="date" name="expires_on"></div></div>
+    <div class="field"><label>File (PDF, Word or photo, up to 2 MB)</label><input type="file" name="file" accept=".pdf,.doc,.docx,image/*" required></div>
+    <div class="field"><label>Notes (optional)</label><input name="notes" placeholder="e.g. Signed by both parties; probation 3 months"></div>
+    <div class="err" id="docErr"></div><button class="btn" style="justify-self:start">${renew?'Save renewal':'Upload'}</button></form>`;
+}
+document.addEventListener('submit',async e=>{ const f=e.target.closest('#docForm'); if(!f) return; e.preventDefault(); const btn=f.querySelector('button'); btn.disabled=true; $('#docErr').textContent='';
+  try{ const file=f.file.files[0]; if(!file) throw new Error('Choose the file.'); if(file.size>2*1024*1024) throw new Error('The file is larger than 2 MB. Try a PDF or a smaller scan.');
+    const data=/^image\//.test(file.type)?await shrinkImage(file):await readFileURL(file);
+    await post('/hr/documents',{user_id:f.dataset.uid,doc_type:f.doc_type.value,title:f.title.value,file:data,file_name:file.name,starts_on:f.starts_on.value,expires_on:f.expires_on.value,notes:f.notes.value,replaces_id:f.dataset.replaces||null});
+    flash(f.dataset.replaces?'Renewal saved. The old version is kept in history.':'Document saved.'); const n=$('#mbox h3').textContent.split(' · ')[0]; openDocs(f.dataset.uid,n); if($('#tabs .on').dataset.tab==='team') loadTeam();
+  }catch(err){ $('#docErr').textContent=err.message; btn.disabled=false; } });
 $('#teamForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#teamErr').textContent='';
   try{ await post('/staff/team',{name:f.name.value,email:f.email.value,role:f.role.value,password:f.password.value}); f.reset(); loadTeam(); }
   catch(err){ $('#teamErr').textContent=err.message; } };
@@ -1011,8 +1069,10 @@ async function loadRota(){
   $('#rotaSub').textContent=(ME.role==='staff'?'Your upcoming shifts.':'Plan who works when, and see who clocked in.')+(placeholder?' Shift times are placeholders until the owner sets them in Settings.':'');
   const ms=(await api('/team/me')).shifts;
   const pay=await api('/team/my-payslips'); const slips=pay.payslips;
+  const myDocs=(await api('/hr/documents')).documents.filter(x=>x.user_id===ME.id&&x.status==='active');
   $('#myShifts').innerHTML=`<h3 class="h3s" style="margin-top:0">My shifts</h3>`+listOr(ms,s=>`<div class="bk"><div class="row"><div><div class="nm">${esc(s.name)}</div><div class="meta">${fmt(s.date)} · ${esc(s.start)}–${esc(s.end)}</div></div></div></div>`,'No shifts for you in the next 2 weeks.')+
     `<h3 class="h3s">My payslips</h3>`+listOr(slips,p=>`<div class="bk"><div class="row"><div><div class="nm">${esc(p.month_label)} · ${money(p.net)}</div><div class="meta">Basic ${money(p.base)}${p.deductions?' · deductions '+money(p.deductions):''}${p.bonus?' · bonus '+money(p.bonus):''}${p.note?' · '+esc(p.note):''}</div></div><span class="badge ${p.status==='paid'?'b-confirmed':'b-pending'}">${p.status==='paid'?'Paid':'Due'}</span></div></div>`,'No payslips yet.')+
+    `<h3 class="h3s">My documents</h3>`+listOr(myDocs,x=>`<div class="bk"><div class="row"><div><div class="nm">${esc(x.title)}</div><div class="meta">${esc(x.type_label)}${x.starts_on?' · from '+fmtY(x.starts_on):''}${x.expires_on?' · ends '+fmtY(x.expires_on):''}</div></div>${expiryBadge(x)}</div><div class="acts"><a class="btn ghost" href="/api/hr/documents/${x.id}/file" target="_blank" rel="noopener">View</a></div></div>`,'No documents on file yet. Ask management for a copy of your employment letter or contract.')+
     (pay.extras.length?`<h3 class="h3s">My bonuses &amp; other payments</h3>`+pay.extras.map(x=>`<div class="bk"><div class="row"><div><div class="nm">${esc(x.kind_label)} · ${money(x.amount)}</div><div class="meta">${x.period?esc(x.period)+' · ':''}${esc(x.reason)}</div></div><span class="badge ${x.status==='paid'?'b-confirmed':'b-checked_in'}">${x.status==='paid'?'Paid':'Approved'}</span></div></div>`).join(''):'');
   if(ME.role==='staff'){ $('#rotaManage').classList.add('hide'); return; }
   $('#rotaManage').classList.remove('hide');
@@ -1237,6 +1297,14 @@ document.addEventListener('click',async e=>{
         async f=>{ await post(`/staff/bookings/${ref}/cancel`,{reason:f.get('reason')}); return {ref,msg:'Booking cancelled.'}; });
     if(act==='expApprove') return actionForm('Approve expense','<div class="field"><label>Note (optional)</label><input name="note"></div>','Approve',async f=>{ await post(`/expenses/${el.dataset.id}/approve`,{note:f.get('note')}); });
     if(act==='expReject') return actionForm('Reject expense','<p class="sub">The manager will see it as rejected. Say why.</p><div class="field"><label>Reason</label><input name="note" required></div>','Reject',async f=>{ await post(`/expenses/${el.dataset.id}/reject`,{note:f.get('note')}); });
+    if(act==='hrDocs'){ e.preventDefault(); return openDocs(el.dataset.id,el.dataset.name); }
+    if(act==='hrRenew'){ await openDocs(el.dataset.uid,el.dataset.name); $('#docForm').outerHTML=docForm(el.dataset.uid,{id:el.dataset.id,type:el.dataset.type,title:el.dataset.title}); $('#docForm').scrollIntoView({behavior:'smooth'}); return; }
+    if(act==='hrEdit') return actionForm(`Edit ${esc(el.dataset.title)}`,`<div class="field"><label>Title</label><input name="title" value="${esc(el.dataset.title)}"></div>
+        <div class="f2"><div class="field"><label>Starts</label><input type="date" name="starts_on" value="${el.dataset.start}"></div><div class="field"><label>Ends / renew by</label><input type="date" name="expires_on" value="${el.dataset.end}"></div></div>
+        <div class="field"><label>Notes</label><input name="notes" value="${esc(el.dataset.notes)}"></div>`,'Save',
+        async f=>{ await post('/hr/documents/'+el.dataset.id,{title:f.get('title'),starts_on:f.get('starts_on'),expires_on:f.get('expires_on'),notes:f.get('notes')}); setTimeout(()=>openDocs(el.dataset.uid,el.dataset.name),50); });
+    if(act==='hrArchive') return actionForm('Archive document','<p class="sub">It stays in the person\'s history and can be restored at any time.</p>','Archive',async()=>{ await post(`/hr/documents/${el.dataset.id}/archive`); setTimeout(()=>openDocs(el.dataset.uid,el.dataset.name),50); });
+    if(act==='hrRestore'){ await post(`/hr/documents/${el.dataset.id}/restore`); return openDocs(el.dataset.uid,el.dataset.name); }
     if(act==='wish') return actionForm(`Wish ${esc(el.dataset.name)} a happy birthday`,'<div class="field"><label>Your message</label><textarea name="message" rows="3" maxlength="300" required placeholder="Happy birthday! Wishing you a wonderful year ahead."></textarea></div>','Send wishes',
         async f=>{ await post(`/team/birthdays/${el.dataset.id}/wish`,{message:f.get('message')}); flash('Wishes sent.'); });
     if(act==='myBirthday'){ openAccount(); return; }
@@ -1276,6 +1344,7 @@ document.addEventListener('click',e=>{ if(e.target.closest('[data-theme-toggle]'
 setTheme(document.documentElement.getAttribute('data-theme')||'light');
 
 document.querySelectorAll('.yr').forEach(e=>e.textContent=new Date().getFullYear());
+window.addEventListener('hashchange',()=>{ if(ME&&$('#s-'+location.hash.slice(1))) show(location.hash.slice(1)); });
 /* ---------- start ---------- */
 api('/auth/me').then(r=>start(r.user)).catch(showLogin);
 </script>

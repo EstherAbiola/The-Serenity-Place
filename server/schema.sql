@@ -255,3 +255,20 @@ CREATE TABLE IF NOT EXISTS extra_payments (
   review_note TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- HR records: employment letters, contracts and other staff documents.
+CREATE TABLE IF NOT EXISTS staff_documents (
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(id),
+  doc_type    TEXT NOT NULL,                       -- employment_letter, contract, guarantor, id, other
+  title       TEXT NOT NULL,
+  file        TEXT NOT NULL,                       -- data URL
+  file_name   TEXT NOT NULL,
+  starts_on   DATE,
+  expires_on  DATE,                                -- when it needs renewing (optional)
+  notes       TEXT,
+  status      TEXT NOT NULL DEFAULT 'active',      -- active, renewed (replaced by a newer one), archived
+  replaces_id INTEGER REFERENCES staff_documents(id),
+  uploaded_by INTEGER REFERENCES users(id),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
