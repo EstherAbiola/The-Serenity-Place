@@ -51,6 +51,7 @@ function createApp() {
   });
   // Paystack webhook needs the raw body to check its signature, so it comes before the JSON parser.
   app.post("/api/paystack/webhook", express.raw({ type: "*/*", limit: "200kb" }), h(async (req, res) => {
+    if (!db.isReady()) return res.status(503).end(); // Paystack will retry
     if (!paystack.validSignature(req.body, req.get("x-paystack-signature"))) return res.status(401).end();
     let event = {};
     try { event = JSON.parse(req.body.toString("utf8")); } catch { return res.status(400).end(); }
@@ -65,6 +66,7 @@ function createApp() {
   app.get("/pay/callback", h(async (req, res) => {
     const reference = String(req.query.reference || req.query.trxref || "");
     if (!paystack.enabled() || !reference) return res.redirect("/#book");
+    if (!db.isReady()) return res.redirect("/?payfail=1#book");
     let result = { ok: false };
     try {
       result = await applyPaystackSuccess(await paystack.verify(reference));
@@ -78,9 +80,15 @@ function createApp() {
   app.use(express.json({ limit: "50kb" }));
   app.use(h(auth.loadUser));
 
+  // Until the database is connected, API calls get a clear "try again shortly" answer.
+  app.use("/api", (req, res, next) => {
+    if (db.isReady() || req.path === "/health") return next();
+    res.status(503).json({ error: "Online booking is temporarily unavailable. Please try again in a few minutes or contact us.", code: "db_unavailable" });
+  });
+
   const api = express.Router();
 
-  api.get("/health", (req, res) => res.json({ ok: true, persistent_db: db.isPersistent(), payment_mode: PAYMENT_MODE }));
+  api.get("/health", (req, res) => res.status(db.isReady() ? 200 : 503).json({ ok: db.isReady(), db_connected: db.isReady(), persistent_db: db.isPersistent(), payment_mode: PAYMENT_MODE }));
 
   // Public: room types, prices and peak periods for the website.
   api.get("/config", h(async (req, res) => {

@@ -20,30 +20,63 @@ function toISODate(v) {
   return String(v).slice(0, 10);
 }
 
+// Accept the connection string even if it was pasted with quotes, a "DATABASE_URL=" prefix,
+// or as Neon's "psql '...'" snippet.
+function cleanDatabaseUrl(raw) {
+  let v = String(raw || "").trim();
+  v = v.replace(/^DATABASE_URL\s*=\s*/i, "").replace(/^psql\s+/i, "").trim();
+  v = v.replace(/^['"]+|['"]+$/g, "").trim();
+  return v;
+}
+
+function describe(u) {
+  return `host=${u.hostname} database=${u.pathname.replace(/^\//, "") || "(none)"} user=${decodeURIComponent(u.username) || "(none)"}`;
+}
+
+let ready = false;
+
+function createPool() {
+  const raw = process.env.DATABASE_URL;
+  const cleaned = cleanDatabaseUrl(raw);
+  let u;
+  try {
+    u = new URL(cleaned);
+  } catch {
+    throw new Error(
+      `DATABASE_URL is not a valid connection string (it starts with "${cleaned.slice(0, 12)}…"). ` +
+      "It should look like postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require"
+    );
+  }
+  if (!/^postgres(ql)?:$/.test(u.protocol)) throw new Error(`DATABASE_URL must start with postgresql:// (found "${u.protocol}").`);
+
+  const local = /^(localhost|127\.0\.0\.1)$/.test(u.hostname);
+  const driver = process.env.DB_DRIVER || (/neon\.tech$/i.test(u.hostname) ? "neon" : "pg");
+  u.searchParams.delete("channel_binding");
+
+  if (driver === "neon") {
+    // GoDaddy Node.js Hosting only allows outbound traffic on ports 80/443, so the normal
+    // Postgres port (5432) is blocked. Neon's serverless driver talks to the same database
+    // over a secure WebSocket on port 443, with the same Pool/transaction API as `pg`.
+    const { Pool, neonConfig, types } = require("@neondatabase/serverless");
+    neonConfig.webSocketConstructor = require("ws");
+    types.setTypeParser(1082, (v) => v); // keep DATE columns as 'YYYY-MM-DD' strings
+    u.searchParams.delete("sslmode");
+    console.error(`[db] Connecting with Neon serverless driver over port 443: ${describe(u)}`);
+    return new Pool({ connectionString: u.toString(), max: 5 });
+  }
+
+  const pg = require("pg");
+  pg.types.setTypeParser(1082, (v) => v);
+  u.searchParams.delete("sslmode");
+  const ssl = local ? false : { rejectUnauthorized: process.env.DB_SSL_NO_VERIFY !== "1" };
+  console.error(`[db] Connecting with standard Postgres driver: ${describe(u)}`);
+  if (!local) console.error("[db] Note: GoDaddy blocks port 5432. Use a Neon connection string (host ending in neon.tech).");
+  return new pg.Pool({ connectionString: u.toString(), ssl, max: 5 });
+}
+
 async function connect() {
   if (process.env.DATABASE_URL) {
-    const u = new URL(process.env.DATABASE_URL);
-    const isNeon = /\.neon\.tech$/i.test(u.hostname) || process.env.DB_DRIVER === "neon";
-    if (isNeon) {
-      // GoDaddy Node.js Hosting only allows outbound traffic on ports 80/443, so the normal
-      // Postgres port (5432) is blocked. Neon's serverless driver talks to the same database
-      // over a secure WebSocket on port 443, with the same Pool/transaction API as `pg`.
-      const { Pool, neonConfig, types } = require("@neondatabase/serverless");
-      neonConfig.webSocketConstructor = require("ws");
-      types.setTypeParser(1082, (v) => v); // keep DATE columns as 'YYYY-MM-DD' strings
-      u.searchParams.delete("channel_binding");
-      pool = new Pool({ connectionString: u.toString(), max: 5 });
-      console.log("[db] Connecting to Neon over WebSocket (port 443).");
-    } else {
-      const pg = require("pg");
-      pg.types.setTypeParser(1082, (v) => v); // keep DATE columns as 'YYYY-MM-DD' strings
-      // Strip libpq-only options (sslmode, channel_binding) and set SSL explicitly.
-      u.searchParams.delete("sslmode");
-      u.searchParams.delete("channel_binding");
-      const local = /^(localhost|127\.0\.0\.1)$/.test(u.hostname);
-      const ssl = local ? false : { rejectUnauthorized: process.env.DB_SSL_NO_VERIFY !== "1" };
-      pool = new pg.Pool({ connectionString: u.toString(), ssl, max: 5 });
-    }
+    pool = createPool();
     pool.on("error", (err) => console.error("[db] idle client error:", err.message));
     persistent = true;
   } else {
@@ -53,8 +86,15 @@ async function connect() {
     pool = new Pool();
     console.warn("[db] DATABASE_URL not set: using a TEMPORARY in-memory database. Data will be lost on restart.");
   }
-  await migrate();
-  await seed();
+  try {
+    await migrate();
+    await seed();
+  } catch (e) {
+    try { await pool.end(); } catch { /* ignore */ }
+    pool = null;
+    throw e;
+  }
+  ready = true;
   return pool;
 }
 
@@ -153,4 +193,4 @@ async function seed() {
   }
 }
 
-module.exports = { connect, query, tx, toISODate, isPersistent: () => persistent };
+module.exports = { connect, query, tx, toISODate, isPersistent: () => persistent, isReady: () => ready, cleanDatabaseUrl };

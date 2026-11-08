@@ -573,10 +573,11 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 const state={ step:1, room:null, checkin:$('#qIn').value, checkout:$('#qOut').value, guests:1, gender:'', details:{}, ref:null, booking:null };
 
 /* ---------- server API (falls back to demo mode when the site is opened without the server) ---------- */
-const API={ ok:false, mode:'preview', test:false, avail:null, availKey:'', seq:0, notice:'' };
+const API={ ok:false, down:false, mode:'preview', test:false, avail:null, availKey:'', seq:0, notice:'' };
 async function api(path,opts={}){
   const res=await fetch('/api'+path,{ headers:{'Content-Type':'application/json'}, ...opts });
   let data={}; try{ data=await res.json(); }catch{}
+  if(res.status===503&&data.code==='db_unavailable') API.down=true;
   if(!res.ok) throw new Error(data.error||'Something went wrong. Please try again.');
   return data;
 }
@@ -589,7 +590,11 @@ async function api(path,opts={}){
     renderRooms();
     await handlePaymentReturn();
     if(document.body.classList.contains('booking')) renderStep();
-  }catch(e){ /* no server: keep demo behaviour */ }
+  }catch(e){
+    if(API.down){ API.notice='Online booking is temporarily unavailable. Please try again in a few minutes, or call or WhatsApp us to book.';
+      if(document.body.classList.contains('booking')) renderStep(); }
+    /* otherwise no server at all: keep demo behaviour */
+  }
 })();
 // Coming back from Paystack: show the receipt, or explain that payment didn't go through.
 async function handlePaymentReturn(){
@@ -716,6 +721,7 @@ function renderStep(){
       <div class="actions"><button class="btn btn-ghost" id="back3">Back</button><button class="btn btn-gold" id="pay">Pay ${money(t.total)}</button></div>`;
     $('#back3').onclick=()=>{ state.step=2; renderStep(); };
     $('#pay').onclick=async()=>{ const b=$('#pay'); b.disabled=true; b.textContent='Processing…'; $('#err').textContent='';
+      if(API.down){ $('#err').textContent='Online booking is temporarily unavailable. Please try again shortly.'; b.disabled=false; b.textContent='Pay '+money(t.total); return; }
       if(!API.ok){ // demo mode (no server)
         setTimeout(()=>{ state.ref='SP-'+Math.random().toString(36).slice(2,8).toUpperCase(); state.booking=null; state.step=4; renderStep(); window.scrollTo(0,0); },1000); return; }
       try{
@@ -757,6 +763,7 @@ function renderStep(){
 function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function saveDetails(){ const f=$('#f2'); if(!f) return; const fd=new FormData(f); state.details={ name:(fd.get('name')||'').trim(), phone:(fd.get('phone')||'').trim(), email:(fd.get('email')||'').trim(), purpose:(fd.get('purpose')||'').trim(), notes:(fd.get('notes')||'').trim(), agree:!!fd.get('agree') }; }
 function validate1(){
+  if(API.down) return 'Online booking is temporarily unavailable. Please try again in a few minutes, or call or WhatsApp us to book.';
   if(!state.checkin||!state.checkout) return 'Please choose your check-in and check-out dates.';
   if(state.checkin<iso(today)) return 'Check-in date cannot be in the past.';
   if(nightsBetween(state.checkin,state.checkout)<1) return 'Check-out must be at least one night after check-in.';
