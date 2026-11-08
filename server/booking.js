@@ -242,22 +242,58 @@ async function createBooking(input, { channel = "online", userId = null } = {}) 
   });
 }
 
-// Record a payment and confirm the booking.
-async function recordPayment(ref, { method, reference = null, amount = null, userId = null }) {
+// Record a successful payment and confirm the booking. Safe to call twice with the same reference.
+// If the 30-minute hold ran out before the money arrived, try to give the guest beds again;
+// if none are left, the booking is flagged "needs_attention" so staff can refund or rehouse them.
+async function confirmPayment(ref, { method, reference = null, amount = null, userId = null }) {
   return db.tx(async (client) => {
     const { rows } = await client.query("SELECT * FROM bookings WHERE ref = $1", [ref]);
     const b = rows[0];
     if (!b) throw new BookingError("Booking not found.", 404, "not_found");
-    if (b.status === "expired") throw new BookingError("This booking's hold expired before payment. Please book again.", 409, "expired");
-    if (b.status === "cancelled") throw new BookingError("This booking was cancelled.", 409, "cancelled");
-    if (b.status !== "pending") throw new BookingError("This booking is already paid.", 409, "already_paid");
+
+    if (reference) {
+      const dup = await client.query("SELECT id FROM payments WHERE reference = $1", [reference]);
+      if (dup.rows.length) return getBooking(ref, client); // already recorded
+    }
+    if (method === "preview" && b.status !== "pending") {
+      throw new BookingError(b.status === "expired" ? "This booking's hold expired before payment. Please book again." : "This booking is already paid.", 409, b.status);
+    }
+
+    let status = b.status;
+    if (status === "pending") {
+      status = "confirmed";
+    } else if (status === "expired") {
+      const nights = nightsBetween(db.toISODate(b.checkin), db.toISODate(b.checkout));
+      const free = await freeBeds(client, b.room_type_id, db.toISODate(b.checkin), db.toISODate(b.checkout), { gender: b.guest_gender, channel: b.channel });
+      const picked = allocate(free, b.beds_count);
+      if (picked) {
+        for (const bed of picked) for (const night of nights) {
+          await client.query("INSERT INTO booking_nights (bed_id, night, booking_id) VALUES ($1,$2,$3)", [bed.id, night, b.id]);
+        }
+        status = "confirmed";
+      } else {
+        status = "needs_attention";
+      }
+    } else if (status === "cancelled") {
+      status = "needs_attention";
+    }
+
     await client.query(
       "INSERT INTO payments (booking_id, amount, method, reference, status, recorded_by) VALUES ($1,$2,$3,$4,'success',$5)",
       [b.id, amount == null ? b.amount : amount, method, reference, userId]
     );
-    await client.query("UPDATE bookings SET status = 'confirmed', expires_at = NULL WHERE id = $1", [b.id]);
+    await client.query("UPDATE bookings SET status = $1, expires_at = NULL WHERE id = $2", [status, b.id]);
+    if (status === "needs_attention") console.warn(`[booking] ${ref} was paid but has no beds; staff must follow up.`);
     return getBooking(ref, client);
   });
+}
+
+// Give a pending online booking a fresh hold while the guest is on the payment page.
+async function extendHold(ref) {
+  await db.query(
+    "UPDATE bookings SET expires_at = $1 WHERE ref = $2 AND status = 'pending'",
+    [new Date(Date.now() + HOLD_MINUTES * 60000).toISOString(), ref]
+  );
 }
 
 async function getBooking(ref, client = db) {
@@ -289,6 +325,6 @@ async function getBooking(ref, client = db) {
 }
 
 module.exports = {
-  BookingError, availability, createBooking, recordPayment, getBooking, getRoomTypes, getPeakPeriods,
+  BookingError, availability, createBooking, confirmPayment, extendHold, getBooking, freeBeds, allocate, nightsBetween, validateStay, getRoomTypes, getPeakPeriods,
   releaseExpired, todayLagos, HOLD_MINUTES,
 };

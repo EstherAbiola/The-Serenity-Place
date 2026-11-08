@@ -86,4 +86,16 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { login, logout, loadUser, requireRole };
+// Signed booking-reference tokens for receipt links (valid for 7 days).
+function signRef(ref) {
+  const exp = Date.now() + 7 * 24 * 3600e3;
+  return `${exp}.${sign(`ref:${ref}:${exp}`)}`;
+}
+function checkRef(ref, token) {
+  const [exp, sig] = String(token).split(".");
+  if (!exp || !sig || Number(exp) < Date.now()) return false;
+  const expected = sign(`ref:${ref}:${exp}`);
+  return sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+}
+
+module.exports = { login, logout, loadUser, requireRole, signRef, checkRef };

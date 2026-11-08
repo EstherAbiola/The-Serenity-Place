@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Serenity Place Residences</title>
+<script>
+/* Light / dark theme: the visitor's saved choice, otherwise their device setting. Runs before paint. */
+(function(){ var t=null; try{ t=localStorage.getItem('sp-theme'); }catch(e){}
+  if(t!=='light'&&t!=='dark') t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  document.documentElement.setAttribute('data-theme',t); })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -11,18 +17,32 @@
   --green:#5a7037; --green-d:#344323; --green-l:#e9eedf; --gold:#e5a93e; --coral:#e9784d;
   --cream:#faf7f0; --sand:#f2ecdf; --ink:#26301b; --muted:#6b7262; --line:#e2dccd; --white:#fff;
   --r:14px; --shadow:0 10px 30px -12px rgba(52,67,35,.25);
+  --surface:#fff; --heading:#344323; --sel:var(--sel); --header-bg:rgba(250,247,240,.94);
+  --red:#b4502b; --red-l:#fbe6dc; --amber:#8a5a0c; --amber-l:#fdf1dc; --amber-bg:#fffaf0; --hover-line:#c9cfb8;
 }
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --green:#6b8540; --green-l:#2c3823; --cream:#141911; --sand:#1b2216; --ink:#ebe7da; --muted:#a6ac9b; --line:#353f2d;
+  --surface:#212a1b; --heading:#e9e3cd; --sel:#29341f; --header-bg:rgba(20,25,17,.92);
+  --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+  --red:#f0a07f; --red-l:#3b2419; --amber:#f0c46a; --amber-l:#3a2f17; --amber-bg:#2b2515; --hover-line:#4b5841;
+}
+html[data-theme="dark"] .brand img{background:#faf7f0;border-radius:50%;padding:2px}
+html[data-theme="dark"] .ph{filter:brightness(.82)}
+.theme-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--heading);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.theme-btn:hover{border-color:var(--green)}
+.nav-right{display:flex;align-items:center;gap:10px}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:Montserrat,system-ui,sans-serif;color:var(--ink);background:var(--cream);line-height:1.6;font-size:16px}
 img{max-width:100%;display:block}
 a{color:inherit}
-h1,h2,h3,.serif{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;line-height:1.15;color:var(--green-d)}
+h1,h2,h3,.serif{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;line-height:1.15;color:var(--heading)}
 .wrap{max-width:1160px;margin:0 auto;padding:0 22px}
 .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--coral);font-weight:600}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;font:600 14px Montserrat,sans-serif;letter-spacing:.04em;padding:14px 26px;border-radius:999px;text-decoration:none;transition:.2s}
 .btn-primary{background:var(--green);color:#fff}.btn-primary:hover{background:var(--green-d)}
-.btn-gold{background:var(--gold);color:var(--green-d)}.btn-gold:hover{filter:brightness(.95)}
+.btn-gold{background:var(--gold);color:#344323}.btn-gold:hover{filter:brightness(.95)}
 .btn-ghost{background:transparent;border:1.5px solid var(--green);color:var(--green)}.btn-ghost:hover{background:var(--green-l)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .divider{display:flex;align-items:center;gap:12px;justify-content:center;margin:14px 0}
@@ -32,18 +52,18 @@ h1,h2,h3,.serif{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;l
 /* notice + header */
 .notice{background:var(--green-d);color:#f3efe2;font-size:13px;text-align:center;padding:9px 16px}
 .notice b{color:var(--gold)}
-header{position:sticky;top:0;z-index:40;background:rgba(250,247,240,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header{position:sticky;top:0;z-index:40;background:var(--header-bg);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:76px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
 .brand img{height:54px;width:auto}
 .brand .wm{display:flex;flex-direction:column;line-height:1}
-.brand .wm b{font:600 22px "Cormorant Garamond",serif;letter-spacing:.12em;color:var(--green-d)}
+.brand .wm b{font:600 22px "Cormorant Garamond",serif;letter-spacing:.12em;color:var(--heading)}
 .brand .wm span{font-size:9.5px;letter-spacing:.42em;color:var(--coral);font-weight:600;margin-top:4px}
 .links{display:flex;gap:28px;align-items:center}
 .links a{font-size:14px;font-weight:500;text-decoration:none;color:var(--ink)}
 .links a:hover{color:var(--green)}
 .burger{display:none;background:none;border:0;cursor:pointer;padding:8px}
-.burger span{display:block;width:24px;height:2px;background:var(--green-d);margin:5px 0}
+.burger span{display:block;width:24px;height:2px;background:var(--heading);margin:5px 0}
 @media(max-width:880px){
   .links{position:fixed;inset:76px 0 auto 0;background:var(--cream);flex-direction:column;gap:0;padding:8px 22px 22px;border-bottom:1px solid var(--line);display:none}
   .links.open{display:flex}
@@ -70,12 +90,12 @@ header{position:sticky;top:0;z-index:40;background:rgba(250,247,240,.94);backdro
 .hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(38,48,27,.15),rgba(38,48,27,.65))}
 .hero-in{position:relative;z-index:2;width:100%;padding:80px 22px 40px;color:#fff}
 .links a.btn{color:#fff}
-.hero h1{color:#fff;font-size:clamp(40px,6vw,72px);max-width:760px}
+.hero h1{color:#fff !important;font-size:clamp(40px,6vw,72px);max-width:760px}
 .hero .yo{font:italic 500 clamp(22px,3vw,30px) "Cormorant Garamond",serif;color:var(--gold);margin:10px 0 18px}
 .hero p.lead{max-width:560px;font-size:17px;opacity:.95}
-.search{margin-top:34px;background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:16px;display:grid;grid-template-columns:repeat(3,1fr) auto;gap:12px;color:var(--ink)}
+.search{margin-top:34px;background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:16px;display:grid;grid-template-columns:repeat(3,1fr) auto;gap:12px;color:var(--ink)}
 .field label{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px}
-.field input,.field select,.field textarea{width:100%;font:500 15px Montserrat,sans-serif;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.field input,.field select,.field textarea{width:100%;font:500 15px Montserrat,sans-serif;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--green)}
 .search .btn{align-self:end;height:48px}
 @media(max-width:760px){.search{grid-template-columns:1fr 1fr}.search .field:nth-child(3){grid-column:1/-1}.search .btn{grid-column:1/-1}.hero{min-height:680px}}
@@ -98,24 +118,24 @@ section{padding:88px 0}
 /* rooms */
 #rooms{background:var(--sand)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px}
-.card{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.card{background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
 .card .ph,.card .photo{aspect-ratio:4/3}
 .card .bd{padding:20px 20px 22px;display:flex;flex-direction:column;flex:1}
-.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--green-l);color:var(--green-d);margin-bottom:10px;align-self:flex-start}
-.tag.soon{background:#fbe6dc;color:#b4502b}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--green-l);color:var(--heading);margin-bottom:10px;align-self:flex-start}
+.tag.soon{background:var(--red-l);color:var(--red)}
 .card h3{font-size:26px}
 .card .meta{font-size:13px;color:var(--muted);margin:6px 0 12px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
 .chips span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
 .price{margin-top:auto;display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:14px}
-.price b{font:700 22px Montserrat,sans-serif;color:var(--green-d)}
+.price b{font:700 22px Montserrat,sans-serif;color:var(--heading)}
 .price small{color:var(--muted);font-size:12px}
 .price a{font-size:13px;font-weight:600;color:var(--green);cursor:pointer;text-decoration:none;white-space:nowrap}
 .ph-note{font-size:12px;color:var(--muted);text-align:center;margin-top:22px;font-style:italic}
 
 /* amenities */
 .amen{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
-.am{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px}
+.am{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px}
 .am .ic{width:46px;height:46px;border-radius:12px;background:var(--green-l);display:flex;align-items:center;justify-content:center;margin-bottom:14px;color:var(--green)}
 .am h4{font-size:15px;margin-bottom:4px}
 .am p{font-size:13.5px;color:var(--muted)}
@@ -123,7 +143,7 @@ section{padding:88px 0}
 /* event banner */
 .event{background:var(--green-d);color:#f3efe2;border-radius:22px;padding:48px;display:grid;grid-template-columns:1.4fr auto;gap:28px;align-items:center;position:relative;overflow:hidden}
 .event:after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;border:2px solid rgba(229,169,62,.35)}
-.event h2{color:#fff;font-size:clamp(28px,3.4vw,40px);margin-bottom:10px}
+.event h2{color:#fff !important;font-size:clamp(28px,3.4vw,40px);margin-bottom:10px}
 .event p{opacity:.85;max-width:560px}
 @media(max-width:760px){.event{grid-template-columns:1fr;padding:34px 26px}}
 
@@ -132,13 +152,13 @@ section{padding:88px 0}
 .loc .ph{border-radius:var(--r);min-height:320px}
 .loc ul{list-style:none;margin-top:18px}
 .loc li{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:12px;font-size:15px}
-.loc li b{min-width:120px;color:var(--green-d)}
+.loc li b{min-width:120px;color:var(--heading)}
 @media(max-width:860px){.loc{grid-template-columns:1fr}}
 
 /* faq */
 #faq{background:var(--sand)}
 .faq{max-width:780px;margin:0 auto}
-.faq details{background:#fff;border-radius:12px;margin-bottom:10px;border:1px solid var(--line)}
+.faq details{background:var(--surface);border-radius:12px;margin-bottom:10px;border:1px solid var(--line)}
 .faq summary{cursor:pointer;list-style:none;padding:18px 22px;font-weight:600;display:flex;justify-content:space-between;gap:12px}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary:after{content:"+";color:var(--gold);font-size:22px;line-height:1}
@@ -151,14 +171,14 @@ section{padding:88px 0}
 .cline{display:flex;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
 .cline .ic{width:40px;height:40px;border-radius:50%;background:var(--green-l);color:var(--green);display:flex;align-items:center;justify-content:center;flex:none}
 .cline small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-form.cform{background:#fff;border-radius:var(--r);padding:28px;box-shadow:var(--shadow);display:grid;gap:14px}
+form.cform{background:var(--surface);border-radius:var(--r);padding:28px;box-shadow:var(--shadow);display:grid;gap:14px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:860px){.contact{grid-template-columns:1fr}.row2{grid-template-columns:1fr}}
-.okmsg{display:none;background:var(--green-l);color:var(--green-d);padding:12px 14px;border-radius:10px;font-size:14px}
+.okmsg{display:none;background:var(--green-l);color:var(--heading);padding:12px 14px;border-radius:10px;font-size:14px}
 
 footer{background:var(--green-d);color:#d9d6c8;padding:60px 0 26px}
 .fgrid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:40px;align-items:start}
-.flogo{background:var(--cream);border-radius:16px;padding:18px;width:200px}
+.flogo{background:#faf7f0;border-radius:16px;padding:18px;width:200px}
 footer h5{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
 footer a{display:block;text-decoration:none;font-size:14px;padding:4px 0;opacity:.85}
 footer a:hover{opacity:1;color:#fff}
@@ -169,7 +189,7 @@ footer a:hover{opacity:1;color:#fff}
 .modal{position:fixed;inset:0;background:rgba(30,38,20,.55);z-index:60;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
 .modal.open{display:flex}
 .mbox{background:var(--cream);border-radius:20px;max-width:860px;width:100%;overflow:hidden;position:relative}
-.mclose{position:absolute;top:14px;right:14px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:#fff;cursor:pointer;font-size:20px;box-shadow:var(--shadow)}
+.mclose{position:absolute;top:14px;right:14px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:var(--surface);cursor:pointer;font-size:20px;box-shadow:var(--shadow)}
 .gal{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:6px;height:340px}
 .gal>*:first-child{grid-row:1/3}
 .mbd{padding:28px 30px 32px}
@@ -178,7 +198,7 @@ footer a:hover{opacity:1;color:#fff}
 .mbd ul{list-style:none}
 .mbd li{padding:6px 0;font-size:14.5px;display:flex;gap:10px}
 .mbd li:before{content:"";width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin-top:8px;flex:none}
-.pricebox{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--line)}
+.pricebox{background:var(--surface);border-radius:14px;padding:20px;border:1px solid var(--line)}
 @media(max-width:700px){.gal{height:240px}.mbd .cols{grid-template-columns:1fr}.mbd{padding:22px}}
 
 /* booking view */
@@ -188,14 +208,14 @@ body.booking main{display:none}
 .bk{display:grid;grid-template-columns:1.5fr 1fr;gap:30px;align-items:start}
 .steps{display:flex;gap:8px;margin:20px 0 26px;flex-wrap:wrap}
 .steps div{flex:1;min-width:90px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:10px;border-top:3px solid var(--line)}
-.steps div.on{color:var(--green-d);border-color:var(--green)}
+.steps div.on{color:var(--heading);border-color:var(--green)}
 .steps div.done{color:var(--green);border-color:var(--gold)}
-.panel{background:#fff;border-radius:18px;padding:28px;box-shadow:var(--shadow)}
+.panel{background:var(--surface);border-radius:18px;padding:28px;box-shadow:var(--shadow)}
 .panel h3{font-size:28px;margin-bottom:18px}
 .rpick{display:grid;gap:10px;margin-bottom:18px}
 .ropt{display:flex;gap:14px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;transition:.15s}
-.ropt:hover{border-color:#c9cfb8}
-.ropt.sel{border-color:var(--green);background:#f6f8f1}
+.ropt:hover{border-color:var(--hover-line)}
+.ropt.sel{border-color:var(--green);background:var(--sel)}
 .ropt.dis{opacity:.5;cursor:not-allowed}
 .ropt .ph,.ropt .photo{width:72px;height:56px;border-radius:8px;flex:none}
 .ropt .ph .phl{display:none}
@@ -205,10 +225,10 @@ body.booking main{display:none}
 .ropt .pr small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 @media(max-width:640px){.g3{grid-template-columns:1fr 1fr}.g3 .field:last-child{grid-column:1/-1}}
-.err{color:#b4502b;font-size:13.5px;margin-top:12px;min-height:20px}
+.err{color:var(--red);font-size:13.5px;margin-top:12px;min-height:20px}
 .avail{font-size:13.5px;padding:10px 14px;border-radius:10px;margin-top:14px;display:none}
-.avail.ok{display:block;background:var(--green-l);color:var(--green-d)}
-.avail.low{display:block;background:#fdf1dc;color:#8a5a0c}
+.avail.ok{display:block;background:var(--green-l);color:var(--heading)}
+.avail.low{display:block;background:var(--amber-l);color:var(--amber)}
 .actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px;flex-wrap:wrap}
 .summary{position:sticky;top:100px}
 .summary .ph,.summary .photo{aspect-ratio:16/9;border-radius:12px;margin-bottom:16px}
@@ -217,10 +237,10 @@ body.booking main{display:none}
 .stotal{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:10px;padding-top:14px;font-weight:700;font-size:18px}
 .check{display:flex;gap:10px;font-size:13.5px;color:var(--muted);align-items:flex-start;margin-top:6px}
 .check input{margin-top:4px;accent-color:var(--green)}
-.paybox{border:1.5px dashed var(--gold);background:#fffaf0;border-radius:12px;padding:16px;font-size:13.5px;color:#7a5410;margin-top:16px}
+.paybox{border:1.5px dashed var(--gold);background:var(--amber-bg);border-radius:12px;padding:16px;font-size:13.5px;color:var(--amber);margin-top:16px}
 .conf{text-align:center;padding:20px 0}
 .conf .tick{width:74px;height:74px;border-radius:50%;background:var(--green-l);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
-.conf .ref{display:inline-block;font:700 22px Montserrat;letter-spacing:.12em;background:var(--sand);padding:10px 20px;border-radius:10px;margin:14px 0;color:var(--green-d)}
+.conf .ref{display:inline-block;font:700 22px Montserrat;letter-spacing:.12em;background:var(--sand);padding:10px 20px;border-radius:10px;margin:14px 0;color:var(--heading)}
 @media(max-width:900px){.bk{grid-template-columns:1fr}.summary{position:static}}
 .backlink{background:none;border:0;cursor:pointer;color:var(--green);font:600 14px Montserrat;display:inline-flex;gap:6px;align-items:center}
 </style>
@@ -244,7 +264,10 @@ body.booking main{display:none}
       <a href="#contact" data-home>Contact</a>
       <a class="btn btn-primary" href="#book">Book now</a>
     </nav>
-    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="nav-right">
+      <button class="theme-btn" data-theme-toggle aria-label="Switch theme"></button>
+      <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+    </div>
   </div>
 </header>
 
@@ -532,7 +555,7 @@ function openRoom(id){
        <div><h4 style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">In the room</h4><ul>${r.amen.map(a=>`<li>${a}</li>`).join('')}</ul></div>
        <div class="pricebox">
          ${r.soon?`<b style="font-size:18px">Opening in our next phase</b><p style="font-size:14px;color:var(--muted);margin:8px 0 16px">Leave your details and we'll let you know as soon as these rooms are bookable.</p><a class="btn btn-primary" style="width:100%" href="#contact" data-close>Join the waitlist</a>`
-         :`<div style="font-size:13px;color:var(--muted)">From</div><div style="font:700 28px Montserrat;color:var(--green-d)">${money(r.price)}</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">per ${r.unit} per night · ${r.capacity}</div><button class="btn btn-primary" style="width:100%" data-bookroom="${r.id}">Book this room</button>`}
+         :`<div style="font-size:13px;color:var(--muted)">From</div><div style="font:700 28px Montserrat;color:var(--heading)">${money(r.price)}</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">per ${r.unit} per night · ${r.capacity}</div><button class="btn btn-primary" style="width:100%" data-bookroom="${r.id}">Book this room</button>`}
        </div>
      </div>
    </div>`;
@@ -550,7 +573,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 const state={ step:1, room:null, checkin:$('#qIn').value, checkout:$('#qOut').value, guests:1, gender:'', details:{}, ref:null, booking:null };
 
 /* ---------- server API (falls back to demo mode when the site is opened without the server) ---------- */
-const API={ ok:false, mode:'preview', avail:null, availKey:'', seq:0 };
+const API={ ok:false, mode:'preview', test:false, avail:null, availKey:'', seq:0, notice:'' };
 async function api(path,opts={}){
   const res=await fetch('/api'+path,{ headers:{'Content-Type':'application/json'}, ...opts });
   let data={}; try{ data=await res.json(); }catch{}
@@ -560,20 +583,38 @@ async function api(path,opts={}){
 (async()=>{
   try{
     const cfg=await api('/config');
-    API.ok=true; API.mode=cfg.payment_mode;
+    API.ok=true; API.mode=cfg.payment_mode; API.test=!!cfg.payment_test;
     for(const t of cfg.room_types){ const r=roomById(t.id); if(!r) continue;
       r.price=t.coming_soon?null:t.base_price; r.soon=!!t.coming_soon; r.name=t.name; if(t.tag) r.tag=t.tag; }
     renderRooms();
+    await handlePaymentReturn();
     if(document.body.classList.contains('booking')) renderStep();
   }catch(e){ /* no server: keep demo behaviour */ }
 })();
+// Coming back from Paystack: show the receipt, or explain that payment didn't go through.
+async function handlePaymentReturn(){
+  const q=new URLSearchParams(location.search);
+  if(!q.has('paid')&&!q.has('payfail')) return;
+  history.replaceState(null,'',location.pathname+'#book');
+  if(q.has('paid')){
+    try{
+      const b=await api(`/bookings/${encodeURIComponent(q.get('paid'))}/receipt?t=${encodeURIComponent(q.get('t')||'')}`);
+      state.booking=b; state.ref=b.ref; state.room=b.room_type.id; state.checkin=b.checkin; state.checkout=b.checkout;
+      state.guests=b.beds; state.gender=b.guest.gender||''; state.details={ name:b.guest.name, email:b.guest.email||'', phone:b.guest.phone };
+      state.step=4; state.fromReturn=true;
+    }catch(e){ API.notice='We received you back from the payment page but could not load your booking. Please contact us with your payment reference.'; }
+  } else {
+    API.notice="Your payment wasn't completed, so nothing was charged. You can try again below.";
+  }
+  document.body.classList.add('booking');
+}
 const availFor=id=>API.avail&&API.availKey===availKey()?API.avail.room_types.find(x=>x.room_type_id===id):null;
 const availKey=()=>[state.checkin,state.checkout,state.gender].join('|');
 function go(h){ if(location.hash==='#'+h) route(); else location.hash=h; }
 function showHome(){ document.body.classList.remove('booking'); }
 function route(){
   const h=location.hash.slice(1);
-  if(h==='book'){ document.body.classList.add('booking'); if(state.step===4){ state.step=1; state.ref=null; } renderStep(); window.scrollTo(0,0); }
+  if(h==='book'){ document.body.classList.add('booking'); if(state.step===4&&!state.fromReturn){ state.step=1; state.ref=null; } state.fromReturn=false; renderStep(); window.scrollTo(0,0); }
   else { showHome(); if(h){ const el=document.getElementById(h); if(el) setTimeout(()=>el.scrollIntoView(),10);} }
 }
 window.addEventListener('hashchange',route);
@@ -602,7 +643,7 @@ function renderSummary(){
     <div class="srow"><span>Check-out</span><b>${state.checkout?fmtDate(state.checkout):'—'}</b></div>
     <div class="srow"><span>Guests</span><b>${state.guests}${state.gender?' · '+(state.gender==='female'?'Female':'Male')+' dorm':''}</b></div>
     ${t?`<div class="srow"><span>${money(t.perUnit)} per ${t.r.unit} for ${t.n} night${t.n!==1?'s':''} × ${t.u}</span><b>${money(t.sub)}</b></div>
-    ${t.peak?`<p style="font-size:12.5px;color:#8a5a0c;margin-top:4px">Includes peak-period rates for some nights.</p>`:''}
+    ${t.peak?`<p style="font-size:12.5px;color:var(--amber);margin-top:4px">Includes peak-period rates for some nights.</p>`:''}
     <div class="stotal"><span>Total</span><span>${money(t.total)}</span></div>`:`<p style="font-size:13.5px;color:var(--muted);margin-top:10px">Select a room to see your total.</p>`}
   `;
 }
@@ -627,7 +668,7 @@ function renderStep(){
           <div class="pr">${r.soon?'Soon':money(r.price)}<small>${r.soon?'':'per '+r.unit+' / night'}</small></div>
         </div>`).join('')}</div>
       <div class="avail" id="avail"></div>
-      <div class="err" id="err"></div>
+      <div class="err" id="err">${API.notice?esc(API.notice):''}</div>
       <div class="actions"><span></span><button class="btn btn-primary" id="next1">Continue</button></div>`;
     const sync=()=>{ state.checkin=$('#bIn').value; state.checkout=$('#bOut').value; state.guests=+$('#bG').value; state.gender=$('#bGen').value; checkAvail(); renderSummary(); };
     $('#bGen').onchange=sync;
@@ -635,6 +676,7 @@ function renderStep(){
     $('#bOut').onchange=sync; $('#bG').onchange=sync;
     $$('[data-pick]').forEach(el=>el.onclick=()=>{ const r=roomById(el.dataset.pick); if(r.soon) return; state.room=r.id; $$('[data-pick]').forEach(x=>x.classList.toggle('sel',x===el)); checkAvail(); renderSummary(); });
     checkAvail();
+    API.notice='';
     $('#next1').onclick=()=>{ const e=validate1(); $('#err').textContent=e||''; if(!e){ state.step=2; renderStep(); window.scrollTo(0,0);} };
   }
   if(state.step===2){
@@ -667,7 +709,9 @@ function renderStep(){
       <div class="srow"><span>Room</span><b>${t.r.name} · ${t.u} ${t.r.unit}${t.u>1?'s':''}</b></div>
       <div class="srow"><span>Stay</span><b>${t.n} night${t.n!==1?'s':''}</b></div>
       <div class="stotal"><span>Amount due</span><span>${money(t.total)}</span></div>
-      <div class="paybox"><b>Preview mode:</b> no money will be charged. When the site goes live, this button opens the secure payment window (card, bank transfer or USSD).</div>
+      ${API.mode==='paystack'
+        ?`<div class="paybox" style="border-style:solid;border-color:var(--line);background:var(--sel);color:var(--heading)">You'll go to <b>Paystack's secure page</b> to pay by card, bank transfer or USSD, then come straight back here. Your beds are held for 30 minutes while you pay.${API.test?'<br><b>Test mode:</b> use Paystack test cards; no real money moves.':''}</div>`
+        :`<div class="paybox"><b>Preview mode:</b> no money will be charged. When payments are switched on, this button opens Paystack's secure page (card, bank transfer or USSD).</div>`}
       <div class="err" id="err"></div>
       <div class="actions"><button class="btn btn-ghost" id="back3">Back</button><button class="btn btn-gold" id="pay">Pay ${money(t.total)}</button></div>`;
     $('#back3').onclick=()=>{ state.step=2; renderStep(); };
@@ -676,26 +720,38 @@ function renderStep(){
         setTimeout(()=>{ state.ref='SP-'+Math.random().toString(36).slice(2,8).toUpperCase(); state.booking=null; state.step=4; renderStep(); window.scrollTo(0,0); },1000); return; }
       try{
         const x=state.details;
-        const bk=await api('/bookings',{method:'POST',body:JSON.stringify({ room_type_id:state.room, checkin:state.checkin, checkout:state.checkout, beds:t.u,
-          guest:{ name:x.name, phone:x.phone, email:x.email, gender:state.gender, purpose:x.purpose, notes:x.notes } })});
-        // Step 3 of the build replaces this with the Paystack payment window.
-        const paid=await api('/bookings/'+bk.ref+'/preview-pay',{method:'POST',body:JSON.stringify({ email:x.email })});
-        state.ref=paid.ref; state.booking=paid; state.step=4; renderStep(); window.scrollTo(0,0);
-      }catch(e){ $('#err').textContent=e.message; b.disabled=false; b.textContent='Pay '+money(t.total); API.availKey=''; }
+        // Reuse the booking if this is a retry for the same stay, so beds aren't held twice.
+        const key=[state.room,state.checkin,state.checkout,t.u,state.gender,x.email].join('|');
+        if(!state.pending||state.pending.key!==key){
+          const bk=await api('/bookings',{method:'POST',body:JSON.stringify({ room_type_id:state.room, checkin:state.checkin, checkout:state.checkout, beds:t.u,
+            guest:{ name:x.name, phone:x.phone, email:x.email, gender:state.gender, purpose:x.purpose, notes:x.notes } })});
+          state.pending={ key, ref:bk.ref };
+        }
+        const ref=state.pending.ref;
+        if(API.mode==='paystack'){
+          b.textContent='Opening secure payment…';
+          const p=await api('/bookings/'+ref+'/pay',{method:'POST',body:JSON.stringify({ email:x.email })});
+          location.href=p.authorization_url; return;
+        }
+        const paid=await api('/bookings/'+ref+'/preview-pay',{method:'POST',body:JSON.stringify({ email:x.email })});
+        state.pending=null; state.ref=paid.ref; state.booking=paid; state.step=4; renderStep(); window.scrollTo(0,0);
+      }catch(e){ $('#err').textContent=e.message; b.disabled=false; b.textContent='Pay '+money(t.total); API.availKey='';
+        if(/expired|already paid|taken|booked/i.test(e.message)) state.pending=null; }
     };
   }
   if(state.step===4){
     const t=totals();
     P.innerHTML=`<div class="conf">
       <div class="tick"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-10"/></svg></div>
-      <h3 style="margin-bottom:6px">Booking confirmed!</h3>
+      <h3 style="margin-bottom:6px">${state.booking&&state.booking.status==='needs_attention'?'Payment received':'Booking confirmed!'}</h3>
       <p style="color:var(--muted)">Thank you, ${esc(state.details.name.split(' ')[0])}. Your stay at Serenity Place is reserved.</p>
       <div class="ref">${state.ref}</div>
-      ${state.booking?`<p style="font-size:14px;margin:0 auto 12px">${esc(state.booking.room_type.name)} · ${state.booking.beds} bed${state.booking.beds>1?'s':''} (${state.booking.allocation.map(a=>esc(a.room)+' '+esc(a.bed)).join(', ')})<br>${fmtDate(state.booking.checkin)} → ${fmtDate(state.booking.checkout)} · Paid ${money(state.booking.amount)}</p>`:''}
-      <p style="color:var(--muted);font-size:14px;max-width:440px;margin:0 auto 22px">Once email sending is switched on, your confirmation and receipt go to <b>${esc(state.details.email)}</b>. Please show this reference and a valid photo ID at check-in.<br><i>${state.booking?'(Preview mode: the booking is saved, but no money was taken.)':'(Demo only: nothing was saved.)'}</i></p>
+      ${state.booking?`<p style="font-size:14px;margin:0 auto 12px">${esc(state.booking.room_type.name)} · ${state.booking.beds} bed${state.booking.beds>1?'s':''} (${state.booking.allocation.map(a=>esc(a.room)+' '+esc(a.bed)).join(', ')})<br>${fmtDate(state.booking.checkin)} → ${fmtDate(state.booking.checkout)} · Paid ${money(state.booking.amount)}</p>
+      ${state.booking.status==='needs_attention'?`<p class="err" style="margin:0 auto 12px;max-width:440px">Your payment arrived after the beds were released and this dorm is now full. Our team will contact you to rehouse you or refund you.</p>`:''}`:''}
+      <p style="color:var(--muted);font-size:14px;max-width:440px;margin:0 auto 22px">Once email sending is switched on, your confirmation and receipt go to <b>${esc(state.details.email)}</b>. Please show this reference and a valid photo ID at check-in.<br><i>${!state.booking?'(Demo only: nothing was saved.)':state.booking.payments.some(p=>p.method==='paystack')?'':'(Preview mode: the booking is saved, but no money was taken.)'}</i></p>
       <button class="btn btn-primary" id="done">Back to home</button>
     </div>`;
-    $('#done').onclick=()=>{ state.step=1; state.details={}; state.ref=null; state.booking=null; API.availKey=''; location.hash='top'; showHome(); window.scrollTo(0,0); };
+    $('#done').onclick=()=>{ state.step=1; state.details={}; state.ref=null; state.booking=null; state.pending=null; API.availKey=''; API.notice=''; location.hash='top'; showHome(); window.scrollTo(0,0); };
   }
 }
 function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -744,6 +800,15 @@ async function checkAvail(){
 
 /* contact form */
 $('#cform').addEventListener('submit',e=>{ e.preventDefault(); $('#okmsg').style.display='block'; e.target.reset(); });
+
+
+/* ---------- theme toggle ---------- */
+function setTheme(t){ document.documentElement.setAttribute('data-theme',t); try{ localStorage.setItem('sp-theme',t); }catch(e){}
+  document.querySelectorAll('[data-theme-toggle]').forEach(b=>{ b.setAttribute('aria-label',t==='dark'?'Switch to light mode':'Switch to dark mode'); b.innerHTML=t==='dark'?SUN_ICON:MOON_ICON; }); }
+const SUN_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>';
+const MOON_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>';
+document.addEventListener('click',e=>{ if(e.target.closest('[data-theme-toggle]')) setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); });
+setTheme(document.documentElement.getAttribute('data-theme')||'light');
 
 route();
 </script>
