@@ -93,3 +93,16 @@ CREATE TABLE IF NOT EXISTS payments (
   recorded_by INTEGER REFERENCES users(id),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- A payment reference can only be recorded once (protects against double-processing).
+CREATE UNIQUE INDEX IF NOT EXISTS payments_reference_key ON payments (reference);
+
+-- Audit trail: who did what to a booking, and when (check-in, check-out, no-show, cancel, payment).
+CREATE TABLE IF NOT EXISTS booking_events (
+  id         SERIAL PRIMARY KEY,
+  booking_id INTEGER NOT NULL REFERENCES bookings(id),
+  action     TEXT NOT NULL,
+  note       TEXT,
+  user_id    INTEGER REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

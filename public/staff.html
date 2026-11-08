@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Front Desk · Serenity Place</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#5a7037;--green-d:#344323;--green-l:#e9eedf;--gold:#e5a93e;--coral:#e9784d;--cream:#faf7f0;--sand:#f2ecdf;--ink:#26301b;--muted:#6b7262;--line:#e2dccd;--red:#b4502b;--red-l:#fbe6dc;--amber:#8a5a0c;--amber-l:#fdf1dc;--blue:#2d5d8a;--blue-l:#e3edf6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Montserrat,system-ui,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;padding-bottom:76px}
+h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;color:var(--green-d);font-weight:600;line-height:1.2}
+button,input,select,textarea{font:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+.top{background:var(--green-d);color:#f3efe2;position:sticky;top:0;z-index:20}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;height:58px;gap:10px}
+.top img{height:36px;background:var(--cream);border-radius:50%;padding:2px}
+.top .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.06em;font-size:13px}
+.top .who{font-size:12.5px;opacity:.85;text-align:right}
+.top .who button{background:none;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;margin-left:8px}
+.tabs{display:flex;gap:4px;padding:12px 0 4px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:9px 14px;border-radius:999px;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button.on{background:var(--green);color:#fff}
+@media(max-width:720px){
+  .tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;z-index:30}
+  .tabs button{padding:8px 8px;font-size:12px;border-radius:10px}
+}
+section{display:none;padding:14px 0 30px}
+section.on{display:block}
+.h{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:8px 0 12px;flex-wrap:wrap}
+.h h2{font-size:28px}
+.sub{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat b{display:block;font-size:24px;color:var(--green-d)}
+.stat span{font-size:12.5px;color:var(--muted)}
+.stat small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.list{display:grid;gap:10px;margin-top:8px}
+.bk{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px}
+.bk .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.bk .nm{font-weight:700;font-size:15.5px}
+.bk .meta{font-size:13px;color:var(--muted)}
+.bk .acts{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.b-confirmed{background:var(--green-l);color:var(--green-d)}
+.b-pending{background:var(--amber-l);color:var(--amber)}
+.b-checked_in{background:var(--blue-l);color:var(--blue)}
+.b-checked_out,.b-expired,.b-cancelled{background:#eee;color:#666}
+.b-no_show,.b-needs_attention{background:var(--red-l);color:var(--red)}
+.btn{border:0;cursor:pointer;font-weight:600;font-size:13px;padding:9px 14px;border-radius:999px;background:var(--green);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.ghost{background:#fff;color:var(--green-d);border:1.5px solid var(--line)}
+.btn.gold{background:var(--gold);color:var(--green-d)}
+.btn.red{background:#fff;color:var(--red);border:1.5px solid #f0c9b8}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.empty{color:var(--muted);font-size:14px;padding:16px;background:#fff;border:1px dashed var(--line);border-radius:14px;text-align:center}
+.card{background:#fff;border-radius:16px;padding:18px;border:1px solid var(--line)}
+.field{display:grid;gap:5px}
+.field label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.field input,.field select,.field textarea{padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--green)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:560px){.f3{grid-template-columns:1fr 1fr}.f3>:last-child{grid-column:1/-1}}
+.form{display:grid;gap:14px}
+.err{color:var(--red);font-size:13.5px;min-height:18px}
+.ok{background:var(--green-l);color:var(--green-d);padding:10px 12px;border-radius:10px;font-size:14px}
+.sumbox{background:var(--sand);border-radius:12px;padding:12px 14px;font-size:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.daygrp{margin-top:18px}
+.daygrp h3{font-size:20px;margin-bottom:6px}
+/* board */
+.board{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px}
+.board table{border-collapse:collapse;font-size:12.5px;min-width:100%}
+.board th,.board td{border-bottom:1px solid var(--line);padding:0;text-align:center;white-space:nowrap}
+.board th{background:var(--sand);padding:8px 6px;font-weight:600;font-size:11.5px;position:sticky;top:0}
+.board td.bed{position:sticky;left:0;background:#fff;text-align:left;padding:6px 10px;font-weight:600;min-width:74px;z-index:1}
+.board tr.room td{background:var(--green-l);text-align:left;padding:7px 10px;font-weight:700;color:var(--green-d)}
+.cell{display:block;min-width:58px;height:34px;line-height:34px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;cursor:default}
+.c-free{background:#fff}
+.c-res{background:repeating-linear-gradient(45deg,#fff,#fff 5px,#f3efe2 5px,#f3efe2 10px)}
+.c-confirmed{background:#cfdcb9;color:var(--green-d);cursor:pointer}
+.c-pending{background:var(--amber-l);color:var(--amber);cursor:pointer}
+.c-checked_in{background:#c8daea;color:var(--blue);cursor:pointer}
+.c-needs_attention,.c-no_show{background:var(--red-l);color:var(--red);cursor:pointer}
+.c-checked_out{background:#eee;color:#666;cursor:pointer}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid var(--line)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(30,38,20,.5);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.modal.open{display:flex}
+.mbox{background:var(--cream);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:20px}
+@media(min-width:721px){.modal{align-items:center}.mbox{border-radius:20px}}
+.mbox h3{font-size:24px;margin-bottom:10px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv span{color:var(--muted)}
+.kv b{text-align:right;font-weight:600}
+.events{font-size:12.5px;color:var(--muted);margin-top:10px;display:grid;gap:4px}
+/* login */
+.login{max-width:380px;margin:12vh auto 0;padding:0 16px}
+.login .card{display:grid;gap:14px}
+.login img{width:120px;margin:0 auto 6px;display:block}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login hide">
+  <img src="/assets/emblem.webp" alt="Serenity Place">
+  <form class="card" id="loginForm">
+    <h2 style="text-align:center">Front desk login</h2>
+    <div class="field"><label>Email</label><input name="email" type="email" autocomplete="username" required></div>
+    <div class="field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
+    <div class="err" id="loginErr"></div>
+    <button class="btn" style="justify-content:center;padding:12px">Log in</button>
+  </form>
+</div>
+
+<div id="appView" class="hide">
+  <div class="top"><div class="wrap">
+    <div class="brand"><img src="/assets/emblem.webp" alt="">FRONT DESK</div>
+    <div class="who"><span id="whoName"></span><button id="logout">Log out</button></div>
+  </div></div>
+  <div class="wrap">
+    <nav class="tabs" id="tabs">
+      <button data-tab="today" class="on">Today</button>
+      <button data-tab="upcoming">Upcoming</button>
+      <button data-tab="board">Beds</button>
+      <button data-tab="new">New booking</button>
+      <button data-tab="find">Find</button>
+      <button data-tab="team" class="hide" id="teamTab">Team</button>
+    </nav>
+
+    <section id="s-today" class="on">
+      <div class="h"><div><h2>Today</h2><div class="sub" id="todayDate"></div></div><button class="btn ghost" data-refresh>Refresh</button></div>
+      <div class="grid" id="todayStats"></div>
+      <div class="h" style="margin-top:22px"><h2 style="font-size:22px">Expected arrivals</h2></div>
+      <div class="list" id="arrivals"></div>
+      <div class="h" style="margin-top:22px"><h2 style="font-size:22px">Departures</h2></div>
+      <div class="list" id="departures"></div>
+      <div class="h" style="margin-top:22px"><h2 style="font-size:22px">In house now</h2></div>
+      <div class="list" id="inhouse"></div>
+    </section>
+
+    <section id="s-upcoming">
+      <div class="h"><div><h2>Next 7 days</h2><div class="sub">Guests due to arrive, so beds can be prepared and guests followed up.</div></div><button class="btn ghost" data-refresh>Refresh</button></div>
+      <div id="upcomingList"></div>
+    </section>
+
+    <section id="s-board">
+      <div class="h"><div><h2>Beds</h2><div class="sub">Every bed for the next 7 nights. Tap a booked cell for details.</div></div>
+        <div style="display:flex;gap:8px;align-items:center"><input type="date" id="boardStart" style="padding:8px;border:1.5px solid var(--line);border-radius:10px"><button class="btn ghost" data-refresh>Refresh</button></div></div>
+      <div class="legend"><span><i class="c-free"></i>Free</span><span><i class="c-res"></i>Free · walk-in reserve</span><span><i class="c-confirmed"></i>Booked</span><span><i class="c-pending"></i>Unpaid</span><span><i class="c-checked_in"></i>Checked in</span><span><i class="c-needs_attention"></i>Needs attention</span></div>
+      <div class="board" id="board"></div>
+    </section>
+
+    <section id="s-new">
+      <div class="h"><div><h2>New booking</h2><div class="sub">For walk-in and phone guests. Can use beds held back from the website.</div></div></div>
+      <form class="card form" id="newForm">
+        <div class="f3">
+          <div class="field"><label>Check-in</label><input type="date" name="checkin" required></div>
+          <div class="field"><label>Check-out</label><input type="date" name="checkout" required></div>
+          <div class="field"><label>Beds</label><select name="beds"></select></div>
+        </div>
+        <div class="f2">
+          <div class="field"><label>Dorm</label><select name="gender" required><option value="">Select</option><option value="female">Female</option><option value="male">Male</option></select></div>
+          <div class="field"><label>Room type</label><select name="room_type_id" required></select></div>
+        </div>
+        <div class="sumbox" id="newSum"><span>Choose dates, dorm and room type to see the price.</span></div>
+        <div class="f2">
+          <div class="field"><label>Guest full name</label><input name="name" required></div>
+          <div class="field"><label>Phone / WhatsApp</label><input name="phone" type="tel" required></div>
+        </div>
+        <div class="f2">
+          <div class="field"><label>Email (for receipt, optional)</label><input name="email" type="email"></div>
+          <div class="field"><label>Purpose of visit</label><input name="purpose" placeholder="Optional"></div>
+        </div>
+        <div class="f2">
+          <div class="field"><label>Payment</label><select name="method"><option value="cash">Cash</option><option value="pos">POS</option><option value="transfer">Bank transfer</option><option value="">Not paid yet</option></select></div>
+          <div class="field"><label>Payment reference</label><input name="reference" placeholder="POS slip / transfer ref"></div>
+        </div>
+        <div class="err" id="newErr"></div>
+        <button class="btn gold" style="justify-content:center;padding:13px">Create booking</button>
+      </form>
+    </section>
+
+    <section id="s-find">
+      <div class="h"><div><h2>Find a booking</h2><div class="sub">Search by reference, guest name or phone number.</div></div></div>
+      <input id="findQ" placeholder="e.g. SP-7KD2QF, Adaeze, 0803…" style="width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff">
+      <div class="list" id="findList" style="margin-top:12px"></div>
+    </section>
+
+    <section id="s-team">
+      <div class="h"><div><h2>Team</h2><div class="sub">Give staff and managers their own login. They should change the temporary password later.</div></div></div>
+      <div class="list" id="teamList"></div>
+      <form class="card form" id="teamForm" style="margin-top:16px">
+        <h3 style="font-size:22px">Add a team member</h3>
+        <div class="f2"><div class="field"><label>Name</label><input name="name" required></div><div class="field"><label>Email</label><input name="email" type="email" required></div></div>
+        <div class="f2"><div class="field"><label>Role</label><select name="role"><option value="staff">Front desk staff</option><option value="manager">Manager</option></select></div><div class="field"><label>Temporary password</label><input name="password" minlength="8" required></div></div>
+        <div class="err" id="teamErr"></div>
+        <button class="btn" style="justify-content:center">Add</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="mbox" id="mbox"></div></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const money=n=>'₦'+Number(n||0).toLocaleString('en-NG');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=d=>new Date(d+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+const addDays=(d,n)=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const STATUS={pending:'Unpaid',confirmed:'Paid · expected',checked_in:'Checked in',checked_out:'Checked out',no_show:'No-show',cancelled:'Cancelled',expired:'Expired',needs_attention:'Needs attention'};
+const badge=s=>`<span class="badge b-${esc(s)}">${esc(STATUS[s]||s)}</span>`;
+const ID_TYPES=['NIN slip / card','Driver’s licence','International passport','Voter’s card','Other'];
+let ME=null, TODAY=null, TYPES=[];
+
+async function api(path,opts={}){
+  const res=await fetch('/api'+path,{headers:{'Content-Type':'application/json'},credentials:'same-origin',...opts});
+  let data={}; try{data=await res.json()}catch{}
+  if(res.status===401&&!path.startsWith('/auth/')){ showLogin(); throw new Error('Please log in again.'); }
+  if(!res.ok) throw new Error(data.error||'Something went wrong.');
+  return data;
+}
+const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+
+/* ---------- login ---------- */
+function showLogin(){ $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); }
+$('#loginForm').onsubmit=async e=>{ e.preventDefault(); $('#loginErr').textContent='';
+  const f=new FormData(e.target);
+  try{ const r=await post('/auth/login',{email:f.get('email'),password:f.get('password')}); start(r.user); }
+  catch(err){ $('#loginErr').textContent=err.message; } };
+$('#logout').onclick=async()=>{ await post('/auth/logout'); location.reload(); };
+
+async function start(user){
+  ME=user; $('#whoName').textContent=`${user.name} · ${user.role}`;
+  $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide');
+  $('#teamTab').classList.toggle('hide',user.role!=='owner');
+  const cfg=await api('/config'); TODAY=cfg.today; TYPES=cfg.room_types.filter(t=>!t.coming_soon);
+  initNewForm(); $('#boardStart').value=TODAY;
+  show(location.hash.slice(1)||'today');
+}
+
+/* ---------- tabs ---------- */
+function show(tab){
+  if(!$('#s-'+tab)||(tab==='team'&&ME.role!=='owner')) tab='today';
+  $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  $$('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+tab));
+  history.replaceState(null,'','#'+tab);
+  Promise.resolve(({today:loadToday,upcoming:loadUpcoming,board:loadBoard,team:loadTeam,find:()=>$('#findQ').focus()}[tab]||(()=>{}))())
+    .catch(err=>{ const sec=$('#s-'+tab); const n=document.createElement('div'); n.className='empty'; n.style.marginTop='10px'; n.textContent=err.message+' Tap Refresh to try again.'; sec.prepend(n); setTimeout(()=>n.remove(),6000); });
+}
+$('#tabs').onclick=e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.tab); };
+document.addEventListener('click',e=>{ if(e.target.closest('[data-refresh]')) show($('#tabs .on').dataset.tab); });
+
+/* ---------- booking cards ---------- */
+function waLink(phone){ let p=String(phone||'').replace(/[^0-9]/g,''); if(p.startsWith('0')) p='234'+p.slice(1); return 'https://wa.me/'+p; }
+function card(b,{mode}={}){
+  const unpaid=b.status==='pending';
+  const acts=[];
+  if(mode==='arrival'){
+    if(unpaid) acts.push(`<button class="btn gold" data-act="pay" data-ref="${esc(b.ref)}">Record payment</button>`);
+    if(b.status==='confirmed') acts.push(`<button class="btn" data-act="checkin" data-ref="${esc(b.ref)}">Check in</button>`);
+    if(['pending','confirmed'].includes(b.status)) acts.push(`<button class="btn red" data-act="noshow" data-ref="${esc(b.ref)}">No-show</button>`);
+  }
+  if(mode==='departure'&&b.status==='checked_in') acts.push(`<button class="btn" data-act="checkout" data-ref="${esc(b.ref)}">Check out</button>`);
+  acts.push(`<a class="btn ghost" href="${waLink(b.guest_phone)}" target="_blank" rel="noopener">WhatsApp</a>`);
+  acts.push(`<button class="btn ghost" data-act="view" data-ref="${esc(b.ref)}">Details</button>`);
+  return `<div class="bk">
+    <div class="row"><div><div class="nm">${esc(b.guest_name)}</div><div class="meta">${esc(b.guest_phone)} · ${esc(b.ref)}</div></div>${badge(b.status)}</div>
+    <div class="meta">${esc(b.room_type)} · ${b.beds} bed${b.beds>1?'s':''} · ${b.guest_gender==='female'?'Female':'Male'} dorm · ${fmt(b.checkin)} → ${fmt(b.checkout)} (${b.nights} night${b.nights>1?'s':''})</div>
+    <div class="meta"><b style="color:var(--ink)">${money(b.amount)}</b> ${b.paid>=b.amount?'paid':'<span style="color:var(--red);font-weight:600">· not paid</span>'} · ${b.channel==='walk_in'?'Front desk':'Online'}</div>
+    <div class="acts">${acts.join('')}</div>
+  </div>`;
+}
+const listOr=(arr,html,empty)=>arr.length?arr.map(html).join(''):`<div class="empty">${empty}</div>`;
+
+/* ---------- today ---------- */
+async function loadToday(){
+  const d=await api('/staff/overview'); TODAY=d.today;
+  $('#todayDate').textContent=new Date(d.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const expected=d.arrivals.filter(b=>['pending','confirmed'].includes(b.status)).length;
+  $('#todayStats').innerHTML=[
+    `<div class="stat"><b>${expected}</b><span>Still to arrive</span></div>`,
+    `<div class="stat"><b>${d.departures.filter(b=>b.status==='checked_in').length}</b><span>Still to check out</span></div>`,
+    `<div class="stat"><b>${d.in_house.reduce((s,b)=>s+b.beds,0)}</b><span>Guests in house</span></div>`,
+    ...d.free_tonight.map(t=>`<div class="stat"><b>${t.female} F · ${t.male} M</b><span>Free tonight · ${esc(t.name)}</span><small>${t.walk_in_reserve} in walk-in reserve</small></div>`),
+    `<div class="stat"><b>${money(d.my_day.collected)}</b><span>You collected today</span><small>${d.my_day.payments} payment${d.my_day.payments===1?'':'s'}</small></div>`
+  ].join('');
+  $('#arrivals').innerHTML=listOr(d.arrivals,b=>card(b,{mode:'arrival'}),'No arrivals expected today.');
+  $('#departures').innerHTML=listOr(d.departures,b=>card(b,{mode:'departure'}),'No departures today.');
+  $('#inhouse').innerHTML=listOr(d.in_house,b=>card(b,{mode:'departure'}),'No guests checked in.');
+}
+
+/* ---------- upcoming ---------- */
+async function loadUpcoming(){
+  const d=await api('/staff/upcoming?days=7');
+  if(!d.arrivals.length){ $('#upcomingList').innerHTML='<div class="empty">No arrivals in the next 7 days.</div>'; return; }
+  const by={}; d.arrivals.forEach(b=>(by[b.checkin]=by[b.checkin]||[]).push(b));
+  $('#upcomingList').innerHTML=Object.keys(by).sort().map(day=>{
+    const beds=by[day].reduce((s,b)=>s+b.beds,0);
+    return `<div class="daygrp"><h3>${fmt(day)} <span class="sub" style="font-family:Montserrat">· ${by[day].length} booking${by[day].length>1?'s':''}, ${beds} bed${beds>1?'s':''}</span></h3><div class="list">${by[day].map(b=>card(b,{mode:'upcoming'})).join('')}</div></div>`;
+  }).join('');
+}
+
+/* ---------- board ---------- */
+async function loadBoard(){
+  const d=await api('/staff/board?days=7&start='+($('#boardStart').value||TODAY));
+  const head=`<tr><th style="left:0;z-index:2;position:sticky">Bed</th>${d.nights.map(n=>`<th>${fmt(n)}</th>`).join('')}</tr>`;
+  const body=d.rooms.map(r=>`<tr class="room"><td colspan="${d.nights.length+1}">${esc(r.name)} · ${r.gender==='female'?'Female':r.gender==='male'?'Male':'Mixed'}</td></tr>`+
+    r.beds.map(b=>`<tr><td class="bed">${esc(b.label)}${b.walk_in_reserve?' <span title="Walk-in reserve" style="color:var(--gold)">●</span>':''}</td>${
+      b.nights.map(n=>n?`<td><span class="cell c-${esc(n.status)}" data-act="view" data-ref="${esc(n.ref)}" title="${esc(n.guest)} · ${esc(n.ref)}">${esc(n.guest.split(' ')[0])}</span></td>`
+                       :`<td><span class="cell ${b.walk_in_reserve?'c-res':'c-free'}"></span></td>`).join('')}</tr>`).join('')).join('');
+  $('#board').innerHTML=`<table>${head}${body}</table>`;
+}
+$('#boardStart').onchange=loadBoard;
+
+/* ---------- new booking ---------- */
+function initNewForm(){
+  const f=$('#newForm');
+  f.beds.innerHTML=[1,2,3,4,5,6,7,8].map(n=>`<option>${n}</option>`).join('');
+  f.room_type_id.innerHTML=TYPES.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  f.checkin.value=TODAY; f.checkin.min=TODAY; f.checkout.value=addDays(TODAY,1); f.checkout.min=addDays(TODAY,1);
+  ['checkin','checkout','beds','gender','room_type_id'].forEach(n=>f[n].addEventListener('change',newPrice));
+  f.checkin.addEventListener('change',()=>{ f.checkout.min=addDays(f.checkin.value,1); if(f.checkout.value<=f.checkin.value) f.checkout.value=addDays(f.checkin.value,1); });
+  newPrice();
+}
+let priceSeq=0;
+async function newPrice(){
+  const f=$('#newForm'); const my=++priceSeq;
+  if(!f.gender.value){ $('#newSum').innerHTML='<span>Choose dates, dorm and room type to see the price.</span>'; return; }
+  try{
+    const a=await api(`/availability?checkin=${f.checkin.value}&checkout=${f.checkout.value}&gender=${f.gender.value}`);
+    if(my!==priceSeq) return;
+    const t=a.room_types.find(x=>x.room_type_id===f.room_type_id.value); const beds=+f.beds.value;
+    $('#newSum').innerHTML=`<span>${a.nights} night${a.nights>1?'s':''} × ${beds} bed${beds>1?'s':''}${t.nightly.some(n=>n.peak)?' · includes peak rates':''}</span><b>${money(t.price_per_unit*beds)}</b><span class="sub" style="width:100%">${t.available} free online for these dates, plus any walk-in reserve beds.</span>`;
+  }catch(e){ if(my===priceSeq) $('#newSum').innerHTML=`<span class="err">${esc(e.message)}</span>`; }
+}
+$('#newForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#newErr').textContent='';
+  const btn=f.querySelector('button'); btn.disabled=true;
+  try{
+    const b=await post('/staff/bookings',{ room_type_id:f.room_type_id.value, checkin:f.checkin.value, checkout:f.checkout.value, beds:+f.beds.value,
+      guest:{ name:f.name.value, phone:f.phone.value, email:f.email.value, gender:f.gender.value, purpose:f.purpose.value },
+      payment:f.method.value?{ method:f.method.value, reference:f.reference.value }:null });
+    ['name','phone','email','purpose','reference'].forEach(n=>f[n].value='');
+    openBooking(b.ref,`Booking ${b.ref} created${b.status==='confirmed'?' and paid':' (not paid yet)'}.`);
+    newPrice();
+  }catch(err){ $('#newErr').textContent=err.message; }
+  btn.disabled=false;
+};
+
+/* ---------- find ---------- */
+let findT;
+$('#findQ').oninput=()=>{ clearTimeout(findT); findT=setTimeout(async()=>{
+  const q=$('#findQ').value.trim(); if(q.length<2){ $('#findList').innerHTML=''; return; }
+  const d=await api('/staff/bookings?q='+encodeURIComponent(q));
+  $('#findList').innerHTML=listOr(d.results,b=>card(b,{mode:['pending','confirmed'].includes(b.status)&&b.checkin<=TODAY?'arrival':b.status==='checked_in'?'departure':''}),'No bookings found.');
+},300); };
+
+/* ---------- team ---------- */
+async function loadTeam(){
+  const d=await api('/staff/team');
+  $('#teamList').innerHTML=d.users.map(u=>`<div class="bk"><div class="row"><div><div class="nm">${esc(u.name)}</div><div class="meta">${esc(u.email)} · ${esc(u.role)}</div></div>
+    ${u.role==='owner'?'<span class="badge b-confirmed">Owner</span>':`<button class="btn ${u.active?'red':'ghost'}" data-act="toggleUser" data-id="${u.id}" data-active="${u.active?0:1}">${u.active?'Deactivate':'Reactivate'}</button>`}</div></div>`).join('');
+}
+$('#teamForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#teamErr').textContent='';
+  try{ await post('/staff/team',{name:f.name.value,email:f.email.value,role:f.role.value,password:f.password.value}); f.reset(); loadTeam(); }
+  catch(err){ $('#teamErr').textContent=err.message; } };
+
+/* ---------- modal & actions ---------- */
+function modal(html){ $('#mbox').innerHTML=html; $('#modal').classList.add('open'); }
+function closeModal(){ $('#modal').classList.remove('open'); }
+$('#modal').onclick=e=>{ if(e.target.id==='modal'||e.target.closest('[data-close]')) closeModal(); };
+function refreshCurrent(){ show($('#tabs .on').dataset.tab); }
+
+async function openBooking(ref,msg){
+  const b=await api('/staff/bookings/'+encodeURIComponent(ref));
+  const paid=b.payments.reduce((s,p)=>s+p.amount,0);
+  const acts=[];
+  if(b.status==='pending') acts.push(`<button class="btn gold" data-act="pay" data-ref="${esc(b.ref)}">Record payment</button>`);
+  if(b.status==='confirmed'&&b.checkin<=TODAY) acts.push(`<button class="btn" data-act="checkin" data-ref="${esc(b.ref)}">Check in</button>`);
+  if(b.status==='checked_in') acts.push(`<button class="btn" data-act="checkout" data-ref="${esc(b.ref)}">Check out</button>`);
+  if(['pending','confirmed'].includes(b.status)&&b.checkin<=TODAY) acts.push(`<button class="btn red" data-act="noshow" data-ref="${esc(b.ref)}">No-show</button>`);
+  if(['owner','manager'].includes(ME.role)&&['pending','confirmed','needs_attention'].includes(b.status)) acts.push(`<button class="btn red" data-act="cancel" data-ref="${esc(b.ref)}">Cancel booking</button>`);
+  modal(`${msg?`<div class="ok" style="margin-bottom:12px">${esc(msg)}</div>`:''}
+    <div class="row" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>${esc(b.guest.name)}</h3>${badge(b.status)}</div>
+    <div class="kv"><span>Reference</span><b>${esc(b.ref)}</b></div>
+    <div class="kv"><span>Phone</span><b><a href="tel:${esc(b.guest.phone)}">${esc(b.guest.phone)}</a> · <a href="${waLink(b.guest.phone)}" target="_blank" rel="noopener">WhatsApp</a></b></div>
+    ${b.guest.email?`<div class="kv"><span>Email</span><b>${esc(b.guest.email)}</b></div>`:''}
+    <div class="kv"><span>Stay</span><b>${fmt(b.checkin)} → ${fmt(b.checkout)} · ${b.nights} night${b.nights>1?'s':''}</b></div>
+    <div class="kv"><span>Beds</span><b>${esc(b.room_type.name)} · ${b.allocation.map(a=>esc(a.room)+' '+esc(a.bed)).join(', ')||'none allocated'}</b></div>
+    <div class="kv"><span>Amount</span><b>${money(b.amount)} · ${paid>=b.amount?'paid':'<span style="color:var(--red)">not paid</span>'}</b></div>
+    ${b.payments.map(p=>`<div class="kv"><span>Payment</span><b>${money(p.amount)} · ${esc(p.method)}${p.reference?' · '+esc(p.reference):''}</b></div>`).join('')}
+    ${b.guest.purpose?`<div class="kv"><span>Purpose</span><b>${esc(b.guest.purpose)}</b></div>`:''}
+    ${b.guest.notes?`<div class="kv"><span>Requests</span><b>${esc(b.guest.notes)}</b></div>`:''}
+    <div class="kv"><span>Booked</span><b>${b.channel==='walk_in'?'Front desk':'Online'}</b></div>
+    ${b.events.length?`<div class="events">${b.events.map(e=>`<div>${new Date(e.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${esc(e.action.replace('_',' '))}${e.by?' by '+esc(e.by):''}${e.note?' · '+esc(e.note):''}</div>`).join('')}</div>`:''}
+    <div class="acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">${acts.join('')}<button class="btn ghost" data-close>Close</button></div>`);
+}
+
+function actionForm(title,body,submitLabel,onSubmit){
+  modal(`<h3>${title}</h3><form class="form" id="actForm">${body}<div class="err" id="actErr"></div>
+    <div style="display:flex;gap:8px"><button class="btn">${submitLabel}</button><button type="button" class="btn ghost" data-close>Back</button></div></form>`);
+  $('#actForm').onsubmit=async e=>{ e.preventDefault(); const btn=e.target.querySelector('button'); btn.disabled=true;
+    try{ const r=await onSubmit(new FormData(e.target)); closeModal(); refreshCurrent(); if(r) openBooking(r.ref,r.msg); }
+    catch(err){ $('#actErr').textContent=err.message; btn.disabled=false; } };
+}
+
+document.addEventListener('click',async e=>{
+  const el=e.target.closest('[data-act]'); if(!el) return;
+  const ref=el.dataset.ref, act=el.dataset.act;
+  try{
+    if(act==='view') return openBooking(ref);
+    if(act==='pay'){ const b=await api('/staff/bookings/'+encodeURIComponent(ref));
+      return actionForm(`Record payment · ${money(b.amount)}`,
+        `<p class="sub">${esc(b.guest.name)} · ${esc(b.ref)}. Record the full amount received.</p>
+         <div class="field"><label>Method</label><select name="method"><option value="cash">Cash</option><option value="pos">POS</option><option value="transfer">Bank transfer</option></select></div>
+         <div class="field"><label>Reference (POS slip / transfer ref)</label><input name="reference"></div>`,
+        'Save payment', async f=>{ await post(`/staff/bookings/${ref}/payment`,{method:f.get('method'),reference:f.get('reference')}); return {ref,msg:'Payment recorded.'}; }); }
+    if(act==='checkin') return actionForm('Check in guest',
+        `<p class="sub">Confirm the guest's photo ID matches the booking name.</p>
+         <div class="field"><label>ID shown</label><select name="id_type" required><option value="">Select</option>${ID_TYPES.map(t=>`<option>${esc(t)}</option>`).join('')}</select></div>`,
+        'Check in', async f=>{ await post(`/staff/bookings/${ref}/checkin`,{id_type:f.get('id_type')}); return {ref,msg:'Guest checked in.'}; });
+    if(act==='checkout') return actionForm('Check out guest','<p class="sub">Confirm the guest has left and returned any keys or locker items.</p>','Check out',
+        async()=>{ await post(`/staff/bookings/${ref}/checkout`); return {ref,msg:'Guest checked out.'}; });
+    if(act==='noshow') return actionForm('Mark as no-show','<p class="sub">The guest\'s beds are released for tonight onwards. Try calling or messaging them first.</p><div class="field"><label>Note (optional)</label><input name="note" placeholder="e.g. Called twice, no answer"></div>','Mark no-show',
+        async f=>{ await post(`/staff/bookings/${ref}/no-show`,{note:f.get('note')}); return {ref,msg:'Marked as no-show.'}; });
+    if(act==='cancel') return actionForm('Cancel booking','<p class="sub">All beds are released. If the guest paid, arrange their refund separately.</p><div class="field"><label>Reason</label><input name="reason" required></div>','Cancel booking',
+        async f=>{ await post(`/staff/bookings/${ref}/cancel`,{reason:f.get('reason')}); return {ref,msg:'Booking cancelled.'}; });
+    if(act==='toggleUser'){ await post(`/staff/team/${el.dataset.id}/active`,{active:el.dataset.active==='1'}); return loadTeam(); }
+  }catch(err){ modal(`<h3>Couldn't do that</h3><p class="err">${esc(err.message)}</p><button class="btn ghost" data-close>Close</button>`); }
+});
+
+/* ---------- start ---------- */
+api('/auth/me').then(r=>start(r.user)).catch(showLogin);
+</script>
+</body>
+</html>
