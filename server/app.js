@@ -107,8 +107,13 @@ function createApp() {
 
   // Website files.
   const pub = path.join(__dirname, "..", "public");
-  app.use(express.static(pub, { extensions: ["html"], maxAge: "1h" }));
-  app.get("*", (req, res) => res.sendFile(path.join(pub, "index.html")));
+  // Pages are always re-checked so updates show straight away; images can be cached for a day.
+  const noCache = (res) => res.setHeader("Cache-Control", "no-cache");
+  app.use(express.static(pub, {
+    extensions: ["html"],
+    setHeaders: (res, file) => (file.endsWith(".html") ? noCache(res) : res.setHeader("Cache-Control", "public, max-age=86400")),
+  }));
+  app.get("*", (req, res) => { noCache(res); res.sendFile(path.join(pub, "index.html")); });
 
   // Errors.
   app.use((err, req, res, next) => {
