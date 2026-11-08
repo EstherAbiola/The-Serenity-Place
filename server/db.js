@@ -74,8 +74,16 @@ function createPool() {
   return new pg.Pool({ connectionString: u.toString(), ssl, max: 5 });
 }
 
+function isMysqlUrl() {
+  return /^mysql/i.test(cleanDatabaseUrl(process.env.DATABASE_URL));
+}
+
 async function connect() {
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && isMysqlUrl()) {
+    // GoDaddy's managed MySQL is not supported yet: run on the temporary database meanwhile.
+    console.error("[db] DATABASE_URL points to MySQL, which this version does not use yet. Using a TEMPORARY in-memory database for now.");
+  }
+  if (process.env.DATABASE_URL && !isMysqlUrl()) {
     pool = createPool();
     pool.on("error", (err) => console.error("[db] idle client error:", err.message));
     persistent = true;
