@@ -38,7 +38,7 @@ function createApp() {
   const cvJson = express.json({ limit: "4mb" });
   app.use((req, res, next) => {
     if (req.path.startsWith("/api/careers/apply")) return cvJson(req, res, next);
-    if (req.path.startsWith("/api/expenses")) return cvJson(req, res, next);
+    if (req.path.startsWith("/api/expenses") || req.path.startsWith("/api/hr")) return cvJson(req, res, next);
     if (req.path.startsWith("/api/team/payroll") || req.path.startsWith("/api/team/extras")) return receiptJson(req, res, next);
     return smallJson(req, res, next);
   });
@@ -102,6 +102,7 @@ function createApp() {
   api.use("/expenses", require("./expenses"));
   api.use("/team", require("./team"));
   api.use("/careers", require("./careers"));
+  api.use("/hr", require("./hr"));
 
   api.use((req, res) => res.status(404).json({ error: "Not found." }));
   app.use("/api", api);
