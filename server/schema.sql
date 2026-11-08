@@ -130,3 +130,98 @@ CREATE TABLE IF NOT EXISTS expenses (
   review_note  TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Staff rota: one row per person per shift.
+CREATE TABLE IF NOT EXISTS shifts (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id),
+  shift_date DATE NOT NULL,
+  name       TEXT NOT NULL,
+  start_time TEXT NOT NULL,                        -- 'HH:MM' Lagos time
+  end_time   TEXT NOT NULL,                        -- may be earlier than start (overnight)
+  created_by INTEGER REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Clock-in / clock-out records.
+CREATE TABLE IF NOT EXISTS attendance (
+  id        SERIAL PRIMARY KEY,
+  user_id   INTEGER NOT NULL REFERENCES users(id),
+  shift_id  INTEGER REFERENCES shifts(id),
+  clock_in  TIMESTAMPTZ NOT NULL,
+  clock_out TIMESTAMPTZ,
+  ip        TEXT,
+  note      TEXT
+);
+
+-- Monthly sales target per staff member (naira collected).
+CREATE TABLE IF NOT EXISTS staff_targets (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  month   TEXT NOT NULL,                           -- 'YYYY-MM'
+  amount  INTEGER NOT NULL,
+  PRIMARY KEY (user_id, month)
+);
+
+-- Agreed pay and bank details per staff member.
+CREATE TABLE IF NOT EXISTS staff_pay (
+  user_id        INTEGER PRIMARY KEY REFERENCES users(id),
+  monthly_salary INTEGER NOT NULL DEFAULT 0,
+  bank_name      TEXT,
+  account_number TEXT,
+  account_name   TEXT
+);
+
+-- Payroll: one row per person per month.
+CREATE TABLE IF NOT EXISTS payroll (
+  id         SERIAL PRIMARY KEY,
+  month      TEXT NOT NULL,
+  user_id    INTEGER NOT NULL REFERENCES users(id),
+  base       INTEGER NOT NULL,
+  deductions INTEGER NOT NULL DEFAULT 0,
+  bonus      INTEGER NOT NULL DEFAULT 0,
+  note       TEXT,
+  status     TEXT NOT NULL DEFAULT 'due',          -- due, paid
+  paid_at    TIMESTAMPTZ,
+  method     TEXT,
+  reference  TEXT,
+  receipt    TEXT,
+  paid_by    INTEGER REFERENCES users(id),
+  UNIQUE (month, user_id)
+);
+
+-- Careers: open roles and applications.
+CREATE TABLE IF NOT EXISTS jobs (
+  id           SERIAL PRIMARY KEY,
+  title        TEXT NOT NULL,
+  description  TEXT,
+  requirements TEXT,
+  open         BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+  id         SERIAL PRIMARY KEY,
+  job_id     INTEGER REFERENCES jobs(id),
+  role       TEXT NOT NULL,
+  name       TEXT NOT NULL,
+  phone      TEXT NOT NULL,
+  email      TEXT,
+  location   TEXT,
+  experience TEXT,
+  cv         TEXT,                                 -- file as a data URL (optional)
+  cv_name    TEXT,
+  status     TEXT NOT NULL DEFAULT 'new',          -- new, shortlisted, rejected, hired
+  note       TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Every email the app tries to send, for troubleshooting.
+CREATE TABLE IF NOT EXISTS email_log (
+  id         SERIAL PRIMARY KEY,
+  kind       TEXT NOT NULL,
+  to_addr    TEXT NOT NULL,
+  subject    TEXT NOT NULL,
+  status     TEXT NOT NULL,                        -- sent, failed, skipped
+  error      TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

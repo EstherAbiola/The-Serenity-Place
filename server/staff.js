@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const db = require("./db");
 const booking = require("./booking");
 const { requireRole } = require("./auth");
+const email = require("./email");
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const ANY = requireRole("owner", "manager", "staff");
@@ -166,7 +167,9 @@ router.post("/bookings", ANY, h(async (req, res) => {
     await booking.confirmPayment(result.ref, { method: pay.method, reference: pay.reference ? String(pay.reference).slice(0, 80) : null, userId: req.user.id });
     await logEvent(raw.id, "payment", req.user.id, `${pay.method}${pay.reference ? " · " + pay.reference : ""}`);
   }
-  res.status(201).json(await booking.getBooking(result.ref));
+  const full = await booking.getBooking(result.ref);
+  email.bookingConfirmation(full);
+  res.status(201).json(full);
 }));
 
 // Record a front-desk payment (full amount) for an unpaid booking.
@@ -178,7 +181,9 @@ router.post("/bookings/:ref/payment", ANY, h(async (req, res) => {
   const reference = req.body?.reference ? String(req.body.reference).slice(0, 80) : null;
   await booking.confirmPayment(b.ref, { method, reference, userId: req.user.id });
   await logEvent(b.id, "payment", req.user.id, `${method}${reference ? " · " + reference : ""}`);
-  res.json(await booking.getBooking(b.ref));
+  const full = await booking.getBooking(b.ref);
+  email.paymentReceipt(full, { amount: full.amount, method, reference });
+  res.json(full);
 }));
 
 router.post("/bookings/:ref/checkin", ANY, h(async (req, res) => {
@@ -232,6 +237,15 @@ router.post("/team", OWNER, h(async (req, res) => {
   if (exists.rows.length) throw new booking.BookingError("Someone already uses that email.", 409);
   await db.query("INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,$4)", [name, email, await bcrypt.hash(password, 10), role]);
   res.status(201).json({ ok: true });
+}));
+
+router.post("/team/:id/password", OWNER, h(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const password = String(req.body?.password || "");
+  if (password.length < 8) throw new booking.BookingError("Temporary password must be at least 8 characters.");
+  const r = await db.query("UPDATE users SET password_hash = $2 WHERE id = $1 AND role <> 'owner' RETURNING id", [id, await bcrypt.hash(password, 10)]);
+  if (!r.rows.length) throw new booking.BookingError("Team member not found.", 404);
+  res.json({ ok: true });
 }));
 
 router.post("/team/:id/active", OWNER, h(async (req, res) => {

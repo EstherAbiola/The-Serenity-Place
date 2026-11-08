@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Careers · Serenity Place Residences</title>
+<meta name="description" content="Work with Serenity Place Residences. See open roles and apply online.">
+<script>
+(function(){ var t=null; try{ t=localStorage.getItem('sp-theme'); }catch(e){}
+  if(t!=='light'&&t!=='dark') t=(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+  document.documentElement.setAttribute('data-theme',t); })();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#5a7037;--green-d:#344323;--green-l:#e9eedf;--gold:#e5a93e;--coral:#e9784d;--cream:#faf7f0;--sand:#f2ecdf;--ink:#26301b;--muted:#6b7262;--line:#e2dccd;--surface:#fff;--heading:#344323;--red:#b4502b}
+html[data-theme="dark"]{color-scheme:dark;--green:#6b8540;--green-l:#2c3823;--cream:#141911;--sand:#1b2216;--ink:#ebe7da;--muted:#a6ac9b;--line:#353f2d;--surface:#212a1b;--heading:#e9e3cd;--red:#f0a07f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Montserrat,system-ui,sans-serif;background:var(--cream);color:var(--ink);line-height:1.6}
+h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;color:var(--heading);font-weight:600;line-height:1.15}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px}
+header{border-bottom:1px solid var(--line);background:var(--cream)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand img{height:48px;background:#faf7f0;border-radius:50%;padding:2px}
+.brand b{font:600 20px "Cormorant Garamond",serif;letter-spacing:.12em;color:var(--heading)}
+.back{font-weight:600;font-size:14px;color:var(--green);text-decoration:none}
+.hero{padding:48px 0 18px}
+.eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--coral);font-weight:600}
+.hero h1{font-size:clamp(36px,6vw,54px);margin:8px 0 10px}
+.hero p{color:var(--muted);max-width:620px}
+.jobs{display:grid;gap:12px;margin:22px 0 36px}
+.job{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.job h3{font-size:24px}
+.job p{font-size:14.5px;color:var(--muted);margin-top:4px}
+.job button{margin-top:12px}
+.btn{border:0;cursor:pointer;font:600 14px Montserrat,sans-serif;padding:12px 22px;border-radius:999px;background:var(--green);color:#fff}
+.btn:disabled{opacity:.5}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:grid;gap:14px;margin-bottom:50px}
+.field{display:grid;gap:5px}
+.field label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.field input,.field select,.field textarea{padding:12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink);width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.two{grid-template-columns:1fr}}
+.err{color:var(--red);font-size:14px;min-height:18px}
+.ok{background:var(--green-l);color:var(--heading);padding:16px;border-radius:12px}
+.hp{position:absolute;left:-9999px}
+footer{border-top:1px solid var(--line);padding:22px 0;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="/"><img src="/assets/emblem.webp" alt=""><b>SERENITY PLACE</b></a><a class="back" href="/">← Back to site</a></div></header>
+<main class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Careers</div>
+    <h1>Work with us</h1>
+    <p>We're building a team that takes pride in clean rooms, safe surroundings and warm hospitality. Pick a role below and apply in a few minutes. You can attach your CV if you have one.</p>
+  </div>
+  <div class="jobs" id="jobs"><div class="job"><p>Loading open roles…</p></div></div>
+  <form class="card" id="apply">
+    <h2 style="font-size:30px">Apply</h2>
+    <div class="field"><label>Role</label><select name="job_id" required></select></div>
+    <div class="two">
+      <div class="field"><label>Full name</label><input name="name" required autocomplete="name"></div>
+      <div class="field"><label>Phone / WhatsApp</label><input name="phone" type="tel" required autocomplete="tel"></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>Email (optional)</label><input name="email" type="email" autocomplete="email"></div>
+      <div class="field"><label>Where do you live?</label><input name="location" placeholder="Town or area"></div>
+    </div>
+    <div class="field"><label>Your experience</label><textarea name="experience" rows="4" placeholder="Past jobs, how long, and anything else we should know"></textarea></div>
+    <div class="field"><label>CV (optional: PDF, Word or photo, up to 2 MB)</label><input type="file" name="cv" accept=".pdf,.doc,.docx,image/*"></div>
+    <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div class="err" id="err"></div>
+    <button class="btn">Send application</button>
+  </form>
+</main>
+<footer><div class="wrap">© <span id="yr"></span> Serenity Place Residences · Pristine Living. Peaceful Stays.</div></footer>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('#yr').textContent=new Date().getFullYear();
+async function api(path,opts={}){ const r=await fetch('/api'+path,{headers:{'Content-Type':'application/json'},...opts}); let d={}; try{d=await r.json()}catch{} if(!r.ok) throw new Error(d.error||'Something went wrong. Please try again.'); return d; }
+(async()=>{
+  try{
+    const {jobs}=await api('/careers/jobs');
+    if(!jobs.length){ $('#jobs').innerHTML='<div class="job"><p>There are no open roles right now. Please check back soon.</p></div>'; $('#apply').style.display='none'; return; }
+    $('#jobs').innerHTML=jobs.map(j=>`<div class="job"><h3>${esc(j.title)}</h3>${j.description?`<p>${esc(j.description)}</p>`:''}${j.requirements?`<p><b>Requirements:</b> ${esc(j.requirements)}</p>`:''}<button class="btn" type="button" data-job="${j.id}">Apply for this role</button></div>`).join('');
+    $('#apply').job_id.innerHTML=jobs.map(j=>`<option value="${j.id}">${esc(j.title)}</option>`).join('');
+  }catch(e){ $('#jobs').innerHTML=`<div class="job"><p>${esc(e.message)}</p></div>`; }
+})();
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-job]'); if(b){ $('#apply').job_id.value=b.dataset.job; $('#apply').scrollIntoView({behavior:'smooth'}); $('#apply').name.focus({preventScroll:true}); } });
+const readFile=f=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('Could not read that file.')); r.readAsDataURL(f); });
+$('#apply').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#err').textContent=''; const btn=f.querySelector('button.btn:last-of-type'); btn.disabled=true;
+  try{
+    let cv=null, cv_name=null; const file=f.cv.files[0];
+    if(file){ if(file.size>2*1024*1024) throw new Error('Your CV is larger than 2 MB. Please attach a smaller file.'); cv=await readFile(file); cv_name=file.name; }
+    await api('/careers/apply',{method:'POST',body:JSON.stringify({job_id:f.job_id.value,name:f.name.value,phone:f.phone.value,email:f.email.value,location:f.location.value,experience:f.experience.value,cv,cv_name,website:f.website.value})});
+    f.outerHTML=`<div class="ok" style="margin-bottom:50px"><b>Thank you!</b> Your application has been sent. If you're shortlisted, we'll contact you by phone or WhatsApp.</div>`;
+  }catch(err){ $('#err').textContent=err.message; btn.disabled=false; }
+};
+</script>
+</body>
+</html>

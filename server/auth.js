@@ -86,6 +86,17 @@ function requireRole(...roles) {
   };
 }
 
+// Anyone logged in can change their own password.
+async function changePassword(req, res) {
+  const current = String(req.body?.current_password || "");
+  const next = String(req.body?.new_password || "");
+  if (next.length < 8) return res.status(400).json({ error: "Choose a new password of at least 8 characters." });
+  const { rows } = await db.query("SELECT password_hash FROM users WHERE id = $1", [req.user.id]);
+  if (!rows[0] || !(await bcrypt.compare(current, rows[0].password_hash))) return res.status(403).json({ error: "Your current password is not correct." });
+  await db.query("UPDATE users SET password_hash = $2 WHERE id = $1", [req.user.id, await bcrypt.hash(next, 10)]);
+  res.json({ ok: true });
+}
+
 // ---- First-run owner setup (no secrets needed) ----
 // If no owner account exists, a one-time setup code is printed to the server logs
 // (GoDaddy → Runtime Logs). Only someone who can see the logs can create the owner login.
@@ -121,4 +132,4 @@ async function setupOwner(req, res) {
   res.status(201).json({ user: rows[0] });
 }
 
-module.exports = { login, logout, loadUser, requireRole, prepareOwnerSetup, setupStatus, setupOwner };
+module.exports = { login, logout, loadUser, requireRole, prepareOwnerSetup, setupStatus, setupOwner, changePassword };
