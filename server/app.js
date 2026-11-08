@@ -31,7 +31,10 @@ function createApp() {
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
     next();
   });
-  app.use(express.json({ limit: "50kb" }));
+  // Small JSON bodies everywhere, except expenses which may carry a receipt photo.
+  const smallJson = express.json({ limit: "50kb" });
+  const receiptJson = express.json({ limit: "2mb" });
+  app.use((req, res, next) => (req.path.startsWith("/api/expenses") ? receiptJson : smallJson)(req, res, next));
   app.use(h(auth.loadUser));
 
   // Until the database is connected, API calls get a clear "try again shortly" answer.
@@ -86,6 +89,8 @@ function createApp() {
 
   // Front desk, managers and owner.
   api.use("/staff", require("./staff"));
+  api.use("/owner", require("./owner"));
+  api.use("/expenses", require("./expenses"));
 
   api.use((req, res) => res.status(404).json({ error: "Not found." }));
   app.use("/api", api);
@@ -99,6 +104,7 @@ function createApp() {
   app.use((err, req, res, next) => {
     if (err instanceof booking.BookingError) return res.status(err.status).json({ error: err.message, code: err.code });
     if (err.type === "entity.parse.failed") return res.status(400).json({ error: "Invalid request." });
+    if (err.type === "entity.too.large") return res.status(413).json({ error: "That upload is too large. Please use a smaller photo." });
     console.error(err);
     res.status(500).json({ error: "Something went wrong on our side. Please try again." });
   });

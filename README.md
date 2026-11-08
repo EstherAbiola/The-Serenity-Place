@@ -15,6 +15,9 @@ Website and booking system for Serenity Place Residences.
 | `server/app.js` | Routes: website, booking API, staff/owner login. |
 | `server/booking.js` | Availability, peak pricing, bed allocation, bookings, front-desk payments. |
 | `server/staff.js` | Front desk API: arrivals, bed board, walk-ins, check-in/out, team. |
+| `server/owner.js` | Owner dashboard, CSV exports, and settings (prices, peak periods, rooms, beds). |
+| `server/expenses.js` | Expense log with receipts and owner approval. |
+| `server/util.js` | Shared helpers (date ranges, CSV, settings). |
 | `server/db.js` | Database connection, setup and placeholder data. |
 | `server/schema.sql` | Database tables. |
 
