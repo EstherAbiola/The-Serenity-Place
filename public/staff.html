@@ -130,6 +130,16 @@ section.on{display:block}
     <div class="err" id="loginErr"></div>
     <button class="btn" style="justify-content:center;padding:12px">Log in</button>
   </form>
+  <form class="card hide" id="setupForm">
+    <h2 style="text-align:center">Set up the owner account</h2>
+    <p class="sub">This is a one-time step. Find the <b>setup code</b> in GoDaddy → your app → <b>Runtime Logs</b>, in a line starting "[setup]".</p>
+    <div class="field"><label>Setup code</label><input name="code" placeholder="e.g. 7F3A-91C2" autocomplete="off" required></div>
+    <div class="field"><label>Your name</label><input name="name" required></div>
+    <div class="field"><label>Email</label><input name="email" type="email" autocomplete="username" required></div>
+    <div class="field"><label>Password (8+ characters)</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div>
+    <div class="err" id="setupErr"></div>
+    <button class="btn gold" style="justify-content:center;padding:12px">Create owner account</button>
+  </form>
 </div>
 
 <div id="appView" class="hide">
@@ -243,7 +253,13 @@ async function api(path,opts={}){
 const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
 
 /* ---------- login ---------- */
-function showLogin(){ $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide'); }
+function showLogin(){ $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide');
+  api('/auth/setup').then(r=>{ $('#setupForm').classList.toggle('hide',!r.needs_setup); $('#loginForm').classList.toggle('hide',!!r.needs_setup); })
+    .catch(err=>{ $('#loginErr').textContent=err.message; }); }
+$('#setupForm').onsubmit=async e=>{ e.preventDefault(); $('#setupErr').textContent='';
+  const f=new FormData(e.target);
+  try{ const r=await post('/auth/setup',{code:f.get('code'),name:f.get('name'),email:f.get('email'),password:f.get('password')}); start(r.user); }
+  catch(err){ $('#setupErr').textContent=err.message; } };
 $('#loginForm').onsubmit=async e=>{ e.preventDefault(); $('#loginErr').textContent='';
   const f=new FormData(e.target);
   try{ const r=await post('/auth/login',{email:f.get('email'),password:f.get('password')}); start(r.user); }

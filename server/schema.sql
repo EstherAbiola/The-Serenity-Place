@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS payments (
   id          SERIAL PRIMARY KEY,
   booking_id  INTEGER NOT NULL REFERENCES bookings(id),
   amount      INTEGER NOT NULL,
-  method      TEXT NOT NULL,                       -- paystack, cash, pos, transfer, preview
+  method      TEXT NOT NULL,                       -- cash, pos, transfer
   reference   TEXT,
   status      TEXT NOT NULL DEFAULT 'success',     -- success, pending, failed
   recorded_by INTEGER REFERENCES users(id),

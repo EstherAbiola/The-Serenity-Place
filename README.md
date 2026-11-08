@@ -13,8 +13,7 @@ Website and booking system for Serenity Place Residences.
 | `public/assets/` | Logo, and `photos/` for real room photos. |
 | `server.js` | Entry point (`npm start`). |
 | `server/app.js` | Routes: website, booking API, staff/owner login. |
-| `server/booking.js` | Availability, peak pricing, bed allocation, bookings, payments. |
-| `server/paystack.js` | Paystack checkout, verification and webhook signatures. |
+| `server/booking.js` | Availability, peak pricing, bed allocation, bookings, front-desk payments. |
 | `server/staff.js` | Front desk API: arrivals, bed board, walk-ins, check-in/out, team. |
 | `server/db.js` | Database connection, setup and placeholder data. |
 | `server/schema.sql` | Database tables. |
@@ -25,34 +24,24 @@ Website and booking system for Serenity Place Residences.
 - Beds marked `online = false` are the walk-in reserve: never sold on the website, only by staff.
 - Dorms are single-sex. Guests choose a female or male dorm, and a group is kept in one room where possible.
 - Peak-period prices apply automatically to nights that fall inside a peak period.
-- Unpaid online bookings hold their beds for 30 minutes, then the beds are released.
-- Payments go through Paystack once `PAYSTACK_SECRET_KEY` is set; until then the site runs in **preview mode** (no money taken).
-- Every Paystack payment is checked server-side (amount and currency must match). Webhooks must carry a valid signature, and a payment reference is recorded only once.
-- If money arrives after a hold expired, the booking gets beds again if any are free; otherwise it is flagged **needs attention** for staff to rehouse or refund.
-
-## Front desk (`/staff`)
-
-- **Today:** arrivals, departures, guests in house, free beds tonight (female/male, incl. walk-in reserve), what you collected today.
-- **Upcoming:** arrivals for the next 7 days.
-- **Beds:** every bed for the next 7 nights.
-- **New booking:** walk-in or phone bookings, can use walk-in reserve beds; record cash, POS or transfer.
-- **Find:** search by reference, name or phone.
-- Actions: record payment, check in (ID type noted), check out, no-show, cancel (managers and owner only). Every action is logged with who did it.
-- **Team** (owner only): add staff and managers, deactivate accounts.
+- Online bookings are **reservations paid on arrival** (cash, POS or transfer at the front desk). Staff record the payment, or mark a no-show to release the beds.
 
 Placeholder data (6 dorms, 40 beds, sample prices, one sample peak period) is created only in an empty database. It will be editable from the owner dashboard.
 
-## Settings (secrets)
+## Settings
 
-See `.env.example`. On GoDaddy, add them under **Settings → Secrets**. Never commit real values.
+**No secrets are required.** The app runs as soon as it is deployed.
+
+- **Owner login:** on first start the app prints a one-time setup code in the server logs (GoDaddy → Runtime Logs, line starting `[setup]`). Open `/staff`, enter the code and create the owner account. The owner then adds staff under **Team**.
+- **Data:** without `DATABASE_URL` the app uses a temporary in-memory database, so bookings are lost whenever the app restarts. Fine for a preview; add a database before taking real bookings.
+
+Optional settings (`.env.example`):
 
 | Name | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Neon Postgres connection string (pooled or direct). Without it, data is temporary and lost on restart. |
-| `SESSION_SECRET` | Long random string that secures staff and owner logins. |
-| `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | First owner account, created on first start. |
-| `PAYSTACK_SECRET_KEY` | Turns on Paystack. `sk_test_...` for testing, `sk_live_...` for real money. |
-| `PUBLIC_URL` | Optional public address for the Paystack return link. |
+| `DATABASE_URL` | Neon Postgres connection string, to keep data permanently. |
+| `SESSION_SECRET` | Keeps staff logged in across restarts. |
+| `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | Alternative to the setup code: creates the owner account on start. |
 
 ## API (so far)
 
@@ -60,13 +49,10 @@ See `.env.example`. On GoDaddy, add them under **Settings → Secrets**. Never c
 | --- | --- | --- |
 | GET | `/api/config` | Public: room types, prices, peak periods |
 | GET | `/api/availability?checkin=&checkout=&gender=` | Public |
-| POST | `/api/bookings` | Public: creates a booking and holds the beds |
+| POST | `/api/bookings` | Public: reserves beds (paid on arrival) |
 | GET | `/api/bookings/:ref?email=` | Guest lookup |
-| POST | `/api/bookings/:ref/pay` | Starts Paystack checkout |
-| GET | `/pay/callback` | Guest returns from Paystack; payment verified |
-| POST | `/api/paystack/webhook` | Paystack server notifications (signed) |
-| POST | `/api/bookings/:ref/preview-pay` | Preview mode only |
 | POST | `/api/auth/login`, `/api/auth/logout`, GET `/api/auth/me` | Staff and owner |
+| GET/POST | `/api/auth/setup` | One-time owner setup with the code from the logs |
 | GET/POST | `/api/staff/...` | Front desk: overview, upcoming, board, bookings, payments, check-in/out, no-show, cancel, team |
 
 ## Running locally
@@ -78,9 +64,7 @@ npm start            # http://localhost:3000
 
 ## Hosting on GoDaddy Node.js Hosting
 
-Connect GitHub, pick this repository and the `main` branch, add the secrets above, then **Import & Deploy**.
+Connect GitHub, pick this repository and the `main` branch, then **Import & Deploy**. No secrets are needed.
 
-GoDaddy only allows outbound connections on ports 80/443, so the app reaches Neon through Neon's serverless driver (secure WebSocket on port 443) automatically whenever `DATABASE_URL` points at `*.neon.tech`. `.npmrc` pins the public npm registry, as GoDaddy requires.
-
-In the Paystack dashboard (Settings → API Keys & Webhooks) set the **Webhook URL** to `https://YOUR-SITE/api/paystack/webhook`.
+GoDaddy only allows outbound connections on ports 80/443, so if `DATABASE_URL` points at Neon (`*.neon.tech`) the app uses Neon's serverless driver over port 443. `.npmrc` pins the public npm registry, as GoDaddy requires.
 After later changes, use **Pull from GitHub**.
