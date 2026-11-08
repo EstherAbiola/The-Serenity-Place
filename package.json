@@ -11,9 +11,11 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "bcryptjs": "^3.0.3",
     "express": "^4.22.3",
     "pg": "^8.23.1",
-    "pg-mem": "^3.0.14"
+    "pg-mem": "^3.0.14",
+    "ws": "^8.22.2"
   }
 }

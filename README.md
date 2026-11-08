@@ -48,7 +48,7 @@ See `.env.example`. On GoDaddy, add them under **Settings → Secrets**. Never c
 
 | Name | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Neon Postgres connection string. Without it, data is temporary and lost on restart. |
+| `DATABASE_URL` | Neon Postgres connection string (pooled or direct). Without it, data is temporary and lost on restart. |
 | `SESSION_SECRET` | Long random string that secures staff and owner logins. |
 | `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | First owner account, created on first start. |
 | `PAYSTACK_SECRET_KEY` | Turns on Paystack. `sk_test_...` for testing, `sk_live_...` for real money. |
@@ -79,6 +79,8 @@ npm start            # http://localhost:3000
 ## Hosting on GoDaddy Node.js Hosting
 
 Connect GitHub, pick this repository and the `main` branch, add the secrets above, then **Import & Deploy**.
+
+GoDaddy only allows outbound connections on ports 80/443, so the app reaches Neon through Neon's serverless driver (secure WebSocket on port 443) automatically whenever `DATABASE_URL` points at `*.neon.tech`. `.npmrc` pins the public npm registry, as GoDaddy requires.
 
 In the Paystack dashboard (Settings → API Keys & Webhooks) set the **Webhook URL** to `https://YOUR-SITE/api/paystack/webhook`.
 After later changes, use **Pull from GitHub**.

@@ -22,16 +22,28 @@ function toISODate(v) {
 
 async function connect() {
   if (process.env.DATABASE_URL) {
-    const pg = require("pg");
-    pg.types.setTypeParser(1082, (v) => v); // keep DATE columns as 'YYYY-MM-DD' strings
-    // Strip libpq-only options (sslmode, channel_binding) and set SSL explicitly, so hosted
-    // databases such as Neon or Supabase connect over verified TLS.
     const u = new URL(process.env.DATABASE_URL);
-    u.searchParams.delete("sslmode");
-    u.searchParams.delete("channel_binding");
-    const local = /^(localhost|127\.0\.0\.1)$/.test(u.hostname);
-    const ssl = local ? false : { rejectUnauthorized: process.env.DB_SSL_NO_VERIFY !== "1" };
-    pool = new pg.Pool({ connectionString: u.toString(), ssl, max: 5 });
+    const isNeon = /\.neon\.tech$/i.test(u.hostname) || process.env.DB_DRIVER === "neon";
+    if (isNeon) {
+      // GoDaddy Node.js Hosting only allows outbound traffic on ports 80/443, so the normal
+      // Postgres port (5432) is blocked. Neon's serverless driver talks to the same database
+      // over a secure WebSocket on port 443, with the same Pool/transaction API as `pg`.
+      const { Pool, neonConfig, types } = require("@neondatabase/serverless");
+      neonConfig.webSocketConstructor = require("ws");
+      types.setTypeParser(1082, (v) => v); // keep DATE columns as 'YYYY-MM-DD' strings
+      u.searchParams.delete("channel_binding");
+      pool = new Pool({ connectionString: u.toString(), max: 5 });
+      console.log("[db] Connecting to Neon over WebSocket (port 443).");
+    } else {
+      const pg = require("pg");
+      pg.types.setTypeParser(1082, (v) => v); // keep DATE columns as 'YYYY-MM-DD' strings
+      // Strip libpq-only options (sslmode, channel_binding) and set SSL explicitly.
+      u.searchParams.delete("sslmode");
+      u.searchParams.delete("channel_binding");
+      const local = /^(localhost|127\.0\.0\.1)$/.test(u.hostname);
+      const ssl = local ? false : { rejectUnauthorized: process.env.DB_SSL_NO_VERIFY !== "1" };
+      pool = new pg.Pool({ connectionString: u.toString(), ssl, max: 5 });
+    }
     pool.on("error", (err) => console.error("[db] idle client error:", err.message));
     persistent = true;
   } else {
