@@ -74,6 +74,37 @@ function describeError(err) {
 }
 /* ---- end of platform helper ---- */
 
+/* ---- Resend (used instead of the GoDaddy gateway when RESEND_API_KEY is set) ---- */
+// Until a domain is verified in Resend, it only delivers to the Resend account's own address,
+// from onboarding@resend.dev. After verifying a domain, set EMAIL_FROM, e.g. "Serenity Place <bookings@yourdomain.com>".
+const RESEND_URL = (process.env.RESEND_API_BASE || "https://api.resend.com") + "/emails";
+async function sendWithResend(input) {
+  const body = {
+    from: process.env.EMAIL_FROM || "Serenity Place <onboarding@resend.dev>",
+    to: toArray(input.to),
+    subject: input.subject,
+  };
+  if (input.html) body.html = input.html;
+  if (input.text) body.text = input.text;
+  const replyTo = input.replyTo || process.env.EMAIL_REPLY_TO;
+  if (replyTo) body.reply_to = replyTo;
+  let res, data = {};
+  try {
+    res = await fetch(RESEND_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    try { data = await res.json(); } catch { /* ignore */ }
+  } catch (err) {
+    throw new Error(`resend unreachable: ${describeError(err)}`);
+  }
+  if (!res.ok || !data.id) throw new Error(`resend send failed: ${data.message || "HTTP " + res.status}`);
+  return { messageId: data.id };
+}
+const provider = () => (process.env.RESEND_API_KEY ? "resend" : "godaddy");
+
 const BRAND = "Serenity Place Residences";
 const money = (n) => "₦" + Number(n || 0).toLocaleString("en-NG");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -114,10 +145,11 @@ function sendSafe(kind, { to, subject, html, text }) {
   if (!isEmail(to)) return;
   (async () => {
     try {
-      await sendEmail({ to, subject, html, text });
+      if (provider() === "resend") await sendWithResend({ to, subject, html, text });
+      else await sendEmail({ to, subject, html, text });
       await log(kind, to, subject, "sent");
     } catch (e) {
-      const unreachable = /unreachable/.test(e.message);
+      const unreachable = provider() === "godaddy" && /unreachable/.test(e.message);
       if (!unreachable) console.error(`[email] ${kind} to ${to} failed: ${e.message}`);
       await log(kind, to, subject, unreachable ? "skipped" : "failed", e.message);
     }
@@ -223,4 +255,4 @@ function extraPayment(x) {
   });
 }
 
-module.exports = { sendEmail, sendSafe, bookingConfirmation, paymentReceipt, applicationReceived, payslip, extraPayment };
+module.exports = { provider, sendEmail, sendSafe, bookingConfirmation, paymentReceipt, applicationReceived, payslip, extraPayment };
