@@ -10,6 +10,7 @@ const HOST = "0.0.0.0";
 const RETRY_SECONDS = 15;
 
 createApp().listen(PORT, HOST, () => console.log(`Serenity Place running on http://${HOST}:${PORT}`));
+console.log(`[email] Sending through ${require("./server/email").provider() === "resend" ? "Resend" : "GoDaddy's built-in email gateway"}.`);
 
 let attempt = 0;
 async function connectDb() {

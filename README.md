@@ -37,7 +37,7 @@ Placeholder data (6 dorms, 40 beds, sample prices, one sample peak period) is cr
 
 ## Emails
 
-Sent through GoDaddy Node.js Hosting's built-in gateway (`http://127.0.0.1:2525`), so no email account or keys are needed: reservation confirmations, payment receipts, application acknowledgements and payslips. Every attempt is recorded in the `email_log` table; outside GoDaddy they are logged as "skipped". Optional `NOTIFY_EMAIL` also sends the team an alert for new reservations and job applications.
+Sent through GoDaddy Node.js Hosting's built-in gateway (`http://127.0.0.1:2525`), so no email account or keys are needed: reservation confirmations, payment receipts, application acknowledgements and payslips. Every attempt is recorded in the `email_log` table; outside GoDaddy they are logged as "skipped". To use **Resend** instead, add `RESEND_API_KEY` (and, once a domain is verified in Resend, `EMAIL_FROM` such as `Serenity Place <bookings@yourdomain.com>`). Until a domain is verified, Resend only delivers to the Resend account's own email address. Optional `NOTIFY_EMAIL` also sends the team an alert for new reservations and job applications.
 
 ## Settings
 
@@ -54,6 +54,7 @@ Optional settings (`.env.example`):
 | `SESSION_SECRET` | Keeps staff logged in across restarts. |
 | `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | Alternative to the setup code: creates the owner account on start. |
 | `NOTIFY_EMAIL` | Team inbox for new-reservation and new-application alerts. |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | Send email through Resend instead of GoDaddy's gateway. |
 | `CONTACT_PHONE`, `CONTACT_ADDRESS` | Shown at the bottom of emails. |
 
 ## API (so far)
