@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Front Desk · Serenity Place</title>
+<title>Staff Portal · Serenity Place Residences</title>
 <script>
 /* Light / dark theme: the visitor's saved choice, otherwise their device setting. Runs before paint. */
 (function(){ var t=null; try{ t=localStorage.getItem('sp-theme'); }catch(e){}
@@ -137,26 +137,86 @@ section.on{display:block}
 .toggle{display:flex;align-items:center;gap:8px;font-size:14px}
 .toggle input{width:18px;height:18px;accent-color:var(--green)}
 /* login */
-.login{max-width:380px;margin:12vh auto 0;padding:0 16px}
-.login .card{display:grid;gap:14px}
-.login img{width:120px;margin:0 auto 6px;display:block}
+/* ---- branded login ---- */
+.login{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
+.login-brand{position:relative;overflow:hidden;background:radial-gradient(circle at 20% 15%,rgba(229,169,62,.22),transparent 45%),radial-gradient(circle at 90% 95%,rgba(233,120,77,.18),transparent 40%),linear-gradient(160deg,#3d4f27,#26301b);color:#f3efe2;display:flex;flex-direction:column;justify-content:space-between;padding:40px 48px}
+.login-brand:before{content:"";position:absolute;inset:0;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cpath d='M45 12c13 9 15 25 0 38C30 37 32 21 45 12z' fill='%23fff'/%3E%3C/svg%3E");background-size:90px}
+.login-brand>*{position:relative}
+.login-logo{background:#faf7f0;border-radius:24px;padding:22px 26px;width:min(330px,80%);box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}
+.login-logo img{width:100%;display:block}
+.login-brand h1{color:#fff;font-size:clamp(34px,4vw,48px);margin-top:28px}
+.login-brand .yo{font:italic 500 24px "Cormorant Garamond",serif;color:var(--gold);margin-top:6px}
+.login-brand ul{list-style:none;margin-top:22px;display:grid;gap:10px;font-size:14px;opacity:.92}
+.login-brand li{display:flex;gap:10px;align-items:center}
+.login-brand li:before{content:"";width:7px;height:7px;background:var(--gold);transform:rotate(45deg);flex:none}
+.login-brand .fine{font-size:12px;opacity:.7}
+.login-form{display:flex;flex-direction:column;justify-content:center;padding:40px 24px;position:relative}
+.login-form .inner{width:100%;max-width:400px;margin:0 auto;display:grid;gap:18px}
+.login-form .theme-btn{position:absolute;top:20px;right:20px;border-color:var(--line)!important;color:var(--heading)!important;background:var(--surface)!important}
+.login .card{display:grid;gap:14px;box-shadow:0 18px 40px -24px rgba(52,67,35,.45)}
+.login .eyebrow{font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--coral);font-weight:600}
+.login h2{font-size:32px}
+.notice-box{display:flex;gap:10px;font-size:12.5px;color:var(--muted);background:var(--sand);border-radius:12px;padding:12px 14px;line-height:1.45}
+.notice-box svg{flex:none;color:var(--green);margin-top:1px}
+@media(max-width:820px){.login{grid-template-columns:1fr}.login-brand{padding:28px 22px 30px}.login-brand h1{font-size:30px;margin-top:18px}.login-brand ul,.login-brand .fine{display:none}.login-logo{width:220px;padding:14px 18px}}
+/* ---- portal header & welcome ---- */
+.top .brand{gap:12px}
+.top .brand img{height:42px}
+.top .wm{display:flex;flex-direction:column;line-height:1.05}
+.top .wm b{font:600 19px "Cormorant Garamond",serif;letter-spacing:.14em;color:#fff}
+.top .wm span{font-size:9.5px;letter-spacing:.32em;color:var(--coral);font-weight:600;margin-top:3px}
+.top .wm span i{font-style:normal;color:var(--gold)}
+.top .wrap{height:66px}
+.userchip{display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 12px 4px 4px;color:#fff;font-size:13px;max-width:46vw}
+.userchip .av{width:30px;height:30px;border-radius:50%;background:var(--gold);color:#344323;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12.5px;flex:none}
+.userchip .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.userchip small{display:block;font-size:10.5px;opacity:.75;text-transform:capitalize}
+@media(max-width:560px){.userchip .txt{display:none}.userchip{padding:3px}.top .wm b{font-size:15px;letter-spacing:.1em}.top .wm span{font-size:8px;letter-spacing:.14em}.top .brand img{height:34px}#logout{display:none}.top .wrap{gap:6px}}
+.welcome{position:relative;overflow:hidden;border-radius:20px;padding:24px;margin:6px 0 16px;color:#f3efe2;background:radial-gradient(circle at 85% 0%,rgba(229,169,62,.25),transparent 45%),linear-gradient(135deg,#4c6130,#2b3720)}
+.welcome:before{content:"";position:absolute;right:-30px;top:-30px;width:220px;height:220px;opacity:.09;background:url("/assets/emblem.webp") center/contain no-repeat;filter:brightness(4)}
+.welcome>*{position:relative}
+.welcome .hi{font:600 clamp(28px,4vw,38px) "Cormorant Garamond",serif;color:#fff;line-height:1.1}
+.welcome .meta2{font-size:13.5px;opacity:.85;margin-top:6px}
+.welcome .yo{font:italic 500 18px "Cormorant Garamond",serif;color:var(--gold);margin-top:4px}
+.welcome .panel{margin-top:18px;display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+@media(max-width:720px){.welcome .panel{grid-template-columns:1fr}}
+.wcard{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:14px 16px}
+.wcard .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.75;font-weight:600}
+.wcard .big{font-weight:700;font-size:18px;margin-top:4px;color:#fff}
+.wcard .small{font-size:12.5px;opacity:.8}
+.wbar{height:8px;background:rgba(255,255,255,.18);border-radius:99px;overflow:hidden;margin-top:10px}
+.wbar div{height:100%;background:var(--gold);border-radius:99px}
+.welcome input{padding:9px 10px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(0,0,0,.15);color:#fff;width:120px}
+.welcome input::placeholder{color:rgba(255,255,255,.6)}
+.pfoot{text-align:center;font-size:12px;color:var(--muted);padding:26px 16px 30px;border-top:1px solid var(--line);margin-top:30px;line-height:1.6}
+.pfoot b{color:var(--heading);font-weight:600}
+@media(max-width:720px){.pfoot{padding-bottom:90px}}
 .hide{display:none!important}
 </style>
 </head>
 <body>
 
 <div id="loginView" class="login hide">
-  <div style="text-align:right;margin-bottom:8px"><button class="theme-btn" data-theme-toggle aria-label="Switch theme" style="border-color:var(--line);color:var(--heading);background:var(--surface)"></button></div>
-  <img src="/assets/emblem.webp" alt="Serenity Place">
+  <aside class="login-brand">
+    <div>
+      <div class="login-logo"><img src="/assets/logo-full.webp" alt="Serenity Place Residences: Pristine Living. Peaceful Stays."></div>
+      <h1>Staff Portal</h1>
+      <ul><li>Reservations, arrivals and bed allocation</li><li>Your shifts, targets and payslips</li><li>Expenses, payroll and reports for management</li></ul>
+    </div>
+    <div class="fine">© <span class="yr"></span> Serenity Place Residences. All rights reserved.</div>
+  </aside>
+  <div class="login-form">
+    <button class="theme-btn" data-theme-toggle aria-label="Switch theme"></button>
+    <div class="inner">
   <form class="card" id="loginForm">
-    <h2 style="text-align:center">Front desk login</h2>
+    <div><div class="eyebrow">Staff Portal</div><h2>Welcome back</h2><div class="sub">Sign in with the email and password given to you by management.</div></div>
     <div class="field"><label>Email</label><input name="email" type="email" autocomplete="username" required></div>
     <div class="field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
     <div class="err" id="loginErr"></div>
-    <button class="btn" style="justify-content:center;padding:12px">Log in</button>
+    <button class="btn" style="justify-content:center;padding:12px">Sign in</button>
   </form>
   <form class="card hide" id="setupForm">
-    <h2 style="text-align:center">Set up the owner account</h2>
+    <div><div class="eyebrow">Staff Portal · First-time setup</div><h2>Set up the owner account</h2></div>
     <p class="sub">This is a one-time step. Find the <b>setup code</b> in GoDaddy → your app → <b>Runtime Logs</b>, in a line starting "[setup]".</p>
     <div class="field"><label>Setup code</label><input name="code" placeholder="e.g. 7F3A-91C2" autocomplete="off" required></div>
     <div class="field"><label>Your name</label><input name="name" required></div>
@@ -165,12 +225,15 @@ section.on{display:block}
     <div class="err" id="setupErr"></div>
     <button class="btn gold" style="justify-content:center;padding:12px">Create owner account</button>
   </form>
+  <div class="notice-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><div><b>Authorised staff only.</b> This portal is private to Serenity Place Residences. Access and activity are monitored and recorded. Do not share your login.</div></div>
+    </div>
+  </div>
 </div>
 
 <div id="appView" class="hide">
   <div class="top"><div class="wrap">
-    <div class="brand"><img src="/assets/emblem.webp" alt="">FRONT DESK</div>
-    <div class="who"><span id="whoName" role="button" tabindex="0" title="My account" style="cursor:pointer;text-decoration:underline dotted"></span><button id="logout">Log out</button><button class="theme-btn" data-theme-toggle aria-label="Switch theme"></button></div>
+    <div class="brand"><img src="/assets/emblem.webp" alt="Serenity Place"><div class="wm"><b>SERENITY PLACE</b><span>RESIDENCES <i>·</i> STAFF PORTAL</span></div></div>
+    <div class="who"><div class="userchip" id="whoName" role="button" tabindex="0" title="My account"></div><button id="logout">Log out</button><button class="theme-btn" data-theme-toggle aria-label="Switch theme"></button></div>
   </div></div>
   <div class="wrap">
     <nav class="tabs" id="tabs">
@@ -189,8 +252,13 @@ section.on{display:block}
     </nav>
 
     <section id="s-today" class="on">
-      <div class="h"><div><h2>Today</h2><div class="sub" id="todayDate"></div></div><button class="btn ghost" data-refresh>Refresh</button></div>
-      <div class="card" id="shiftCard" style="margin-bottom:12px"></div>
+      <div class="welcome" id="welcome">
+        <div class="hi" id="welcomeHi"></div>
+        <div class="meta2" id="welcomeMeta"></div>
+        <div class="yo">Pristine Living. Peaceful Stays. · Ìtura àti Àlàáfíà.</div>
+        <div class="panel" id="shiftCard"></div>
+      </div>
+      <div class="h"><div><h2>Today at Serenity Place</h2><div class="sub" id="todayDate"></div></div><button class="btn ghost" data-refresh>Refresh</button></div>
       <div class="grid" id="todayStats"></div>
       <div class="h" style="margin-top:22px"><h2 style="font-size:22px">Expected arrivals</h2></div>
       <div class="list" id="arrivals"></div>
@@ -391,6 +459,8 @@ section.on{display:block}
   </div>
 </div>
 
+<footer class="pfoot hide" id="appFoot"><b>Serenity Place Residences · Staff Portal</b><br>© <span class="yr"></span> Serenity Place Residences. All rights reserved. For authorised staff only; access and activity on this portal are monitored and recorded.</footer>
+
 <div class="modal" id="modal"><div class="mbox" id="mbox"></div></div>
 
 <script>
@@ -414,7 +484,7 @@ async function api(path,opts={}){
 const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
 
 /* ---------- login ---------- */
-function showLogin(){ $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide');
+function showLogin(){ $('#appView').classList.add('hide'); $('#appFoot').classList.add('hide'); $('#loginView').classList.remove('hide');
   api('/auth/setup').then(r=>{ $('#setupForm').classList.toggle('hide',!r.needs_setup); $('#loginForm').classList.toggle('hide',!!r.needs_setup); })
     .catch(err=>{ $('#loginErr').textContent=err.message; }); }
 $('#setupForm').onsubmit=async e=>{ e.preventDefault(); $('#setupErr').textContent='';
@@ -428,8 +498,11 @@ $('#loginForm').onsubmit=async e=>{ e.preventDefault(); $('#loginErr').textConte
 $('#logout').onclick=async()=>{ await post('/auth/logout'); location.reload(); };
 
 async function start(user){
-  ME=user; $('#whoName').textContent=`${user.name} · ${user.role}`;
-  $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide');
+  ME=user;
+  const initials=user.name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+  const ROLE={owner:'Owner',manager:'Manager',staff:'Front desk'};
+  $('#whoName').innerHTML=`<span class="av">${esc(initials)}</span><span class="txt"><span class="nm">${esc(user.name)}</span><small>${ROLE[user.role]||esc(user.role)}</small></span>`;
+  $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide'); $('#appFoot').classList.remove('hide');
   $$('#tabs [data-roles]').forEach(b=>b.classList.toggle('hide',!b.dataset.roles.split(' ').includes(user.role)));
   const cfg=await api('/config'); TODAY=cfg.today; TYPES=cfg.room_types.filter(t=>!t.coming_soon); window.CFG_PEAKS=cfg.peak_periods;
   initNewForm(); $('#boardStart').value=TODAY;
@@ -474,16 +547,25 @@ const listOr=(arr,html,empty)=>arr.length?arr.map(html).join(''):`<div class="em
 /* ---------- today ---------- */
 async function loadShiftCard(){
   const me=await api('/team/me'); ME_TEAM=me;
-  const todays=me.shifts.filter(s=>s.date===me.today||(s.date<me.today));
+  const h=+new Intl.DateTimeFormat('en-GB',{hour:'numeric',hour12:false,timeZone:'Africa/Lagos'}).format(new Date());
+  const greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const ROLE={owner:'Owner',manager:'Manager',staff:'Front desk team'};
+  $('#welcomeHi').textContent=`${greet}, ${ME.name.split(' ')[0]}`;
+  $('#welcomeMeta').textContent=`${ROLE[ME.role]||ME.role} · ${new Date(me.today+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`;
   const next=me.shifts[0];
   const t=me.target, pctv=t.amount?Math.min(1,t.collected/t.amount):0;
-  $('#shiftCard').innerHTML=`<div class="row" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
-    <div><div class="nm" style="font-weight:700">${me.clocked_in?'You are clocked in':'You are not clocked in'}</div>
-      <div class="meta" style="font-size:13px;color:var(--muted)">${me.clocked_in?'Since '+new Date(me.clocked_in.since).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):next?`Next shift: ${esc(next.name)} · ${fmt(next.date)} ${esc(next.start)}–${esc(next.end)}`:'No shifts on the rota for you yet.'}</div></div>
-    <div style="display:flex;gap:8px;align-items:center">${!me.clocked_in&&me.settings.site_code_required?'<input id="siteCode" placeholder="Site code" style="width:110px;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)">':''}
-      <button class="btn ${me.clocked_in?'red':'gold'}" id="clockBtn">${me.clocked_in?'Clock out':'Clock in'}</button></div></div>
-    <div style="margin-top:12px"><div class="meta" style="font-size:13px;color:var(--muted);display:flex;justify-content:space-between"><span>My target · ${esc(t.month_label)}</span><b style="color:var(--ink)">${money(t.collected)}${t.amount?' of '+money(t.amount):''}</b></div>
-      ${t.amount?`<div style="height:8px;background:var(--sand);border-radius:99px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${Math.round(pctv*100)}%;background:var(--green)"></div></div>`:'<div class="sub">No target set for this month.</div>'}</div>`;
+  $('#shiftCard').innerHTML=`<div class="wcard">
+      <div class="lbl">My shift</div>
+      <div class="big">${me.clocked_in?'Clocked in since '+new Date(me.clocked_in.since).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'Not clocked in'}</div>
+      <div class="small">${next?`Next on the rota: ${esc(next.name)} · ${fmt(next.date)} ${esc(next.start)}–${esc(next.end)}`:'No shifts on the rota for you yet.'}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap">${!me.clocked_in&&me.settings.site_code_required?'<input id="siteCode" placeholder="Site code" autocomplete="off">':''}
+        <button class="btn ${me.clocked_in?'ghost':'gold'}" id="clockBtn">${me.clocked_in?'Clock out':'Clock in'}</button></div>
+    </div>
+    <div class="wcard">
+      <div class="lbl">My target · ${esc(t.month_label)}</div>
+      <div class="big">${money(t.collected)}${t.amount?` <span style="font-weight:500;font-size:14px;opacity:.8">of ${money(t.amount)}</span>`:''}</div>
+      ${t.amount?`<div class="wbar"><div style="width:${Math.round(pctv*100)}%"></div></div><div class="small" style="margin-top:6px">${Math.round(pctv*100)}% reached · ${t.payments} payment${t.payments===1?'':'s'} recorded by you</div>`:`<div class="small">Collected by you this month. No target set yet.</div>`}
+    </div>`;
   $('#clockBtn').onclick=async()=>{ const b=$('#clockBtn'); b.disabled=true;
     try{
       if(me.clocked_in){ const r=await post('/team/clock-out',{}); showShiftSummary(r); }
@@ -931,9 +1013,11 @@ $('#setRevTarget').onsubmit=async e=>{ e.preventDefault(); try{ await post('/own
 /* ---------- my account ---------- */
 function openAccount(){
   actionForm('My account',`<p class="sub">${esc(ME.name)} · ${esc(ME.email)} · ${esc(ME.role)}</p>
+    <button type="button" class="btn ghost" id="acctLogout" style="justify-self:start">Log out</button>
     <div class="field"><label>Current password</label><input name="current" type="password" autocomplete="current-password" required></div>
     <div class="field"><label>New password (8+ characters)</label><input name="next" type="password" minlength="8" autocomplete="new-password" required></div>`,'Change password',
     async f=>{ await post('/auth/password',{current_password:f.get('current'),new_password:f.get('next')}); flash('Password changed.'); });
+  $('#acctLogout').onclick=async()=>{ await post('/auth/logout'); location.reload(); };
 }
 $('#whoName').onclick=openAccount;
 $('#whoName').onkeydown=e=>{ if(e.key==='Enter') openAccount(); };
@@ -1027,6 +1111,7 @@ const MOON_ICON='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 document.addEventListener('click',e=>{ if(e.target.closest('[data-theme-toggle]')) setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); });
 setTheme(document.documentElement.getAttribute('data-theme')||'light');
 
+document.querySelectorAll('.yr').forEach(e=>e.textContent=new Date().getFullYear());
 /* ---------- start ---------- */
 api('/auth/me').then(r=>start(r.user)).catch(showLogin);
 </script>
