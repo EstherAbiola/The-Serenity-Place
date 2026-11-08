@@ -414,8 +414,8 @@ const CONFIG = {
     { id:"dorm4", name:"Shared Dorm · 4 Bed", tag:"Popular", unit:"bed", price:15000, capacity:"1 guest per bed", maxGuests:4, available:16,
       desc:"A quieter shared room with fewer beds. Good for small groups or friends travelling together.",
       amen:["Single bed with fresh linen","Personal locker","Shared bathroom","Air conditioning","Charging point per bed"] },
-    { id:"private", name:"Private Standard Room", tag:"Private", unit:"room", price:30000, capacity:"Up to 2 guests per room", perRoom:2, maxGuests:6, available:8,
-      desc:"Your own room with an en-suite bathroom. Perfect for couples, ministers, or anyone who wants more privacy.",
+    { id:"private", name:"Private Standard Room", tag:"Coming soon", unit:"room", price:null, capacity:"Up to 2 guests per room", soon:true,
+      desc:"Your own room with an en-suite bathroom. Private rooms open in a later phase. Join the waitlist to hear first.",
       amen:["Double bed","En-suite bathroom","Air conditioning","Wardrobe & desk","Wi-Fi"] },
     { id:"exec", name:"Executive Room", tag:"Coming soon", unit:"room", price:null, capacity:"Up to 2 guests", soon:true,
       desc:"Premium rooms with upgraded finishes and extra space are in our next phase. Join the waitlist to be first to book.",
@@ -480,7 +480,7 @@ $('#notice').innerHTML=CONFIG.notice;
 $('#heroLead').textContent=CONFIG.heroLead;
 $('#aboutP1').textContent=CONFIG.about[0]; $('#aboutP2').textContent=CONFIG.about[1];
 $('#stats').innerHTML=CONFIG.stats.map(([a,b])=>`<div><b>${a}</b><span>${b}</span></div>`).join('');
-$('#roomGrid').innerHTML=CONFIG.rooms.map(r=>`
+function renderRooms(){ $('#roomGrid').innerHTML=CONFIG.rooms.map(r=>`
  <article class="card">
    ${photo(r.id,r.name)}
    <div class="bd">
@@ -493,7 +493,8 @@ $('#roomGrid').innerHTML=CONFIG.rooms.map(r=>`
        <a data-room="${r.id}">${r.soon?'Join waitlist →':'View & book →'}</a>
      </div>
    </div>
- </article>`).join('');
+ </article>`).join(''); fillPhotos($('#roomGrid')); }
+renderRooms();
 $('#amenGrid').innerHTML=CONFIG.amenities.map(([i,t,d])=>`<div class="am"><div class="ic">${icon(i)}</div><h4>${t}</h4><p>${d}</p></div>`).join('');
 $('#locList').innerHTML=CONFIG.location.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join('');
 $('#faqList').innerHTML=CONFIG.faqs.map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('');
@@ -530,7 +531,7 @@ function openRoom(id){
      <div class="cols">
        <div><h4 style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">In the room</h4><ul>${r.amen.map(a=>`<li>${a}</li>`).join('')}</ul></div>
        <div class="pricebox">
-         ${r.soon?`<b style="font-size:18px">Opening in our next phase</b><p style="font-size:14px;color:var(--muted);margin:8px 0 16px">Leave your details and we'll let you know as soon as executive rooms are bookable.</p><a class="btn btn-primary" style="width:100%" href="#contact" data-close>Join the waitlist</a>`
+         ${r.soon?`<b style="font-size:18px">Opening in our next phase</b><p style="font-size:14px;color:var(--muted);margin:8px 0 16px">Leave your details and we'll let you know as soon as these rooms are bookable.</p><a class="btn btn-primary" style="width:100%" href="#contact" data-close>Join the waitlist</a>`
          :`<div style="font-size:13px;color:var(--muted)">From</div><div style="font:700 28px Montserrat;color:var(--green-d)">${money(r.price)}</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">per ${r.unit} per night · ${r.capacity}</div><button class="btn btn-primary" style="width:100%" data-bookroom="${r.id}">Book this room</button>`}
        </div>
      </div>
@@ -546,7 +547,28 @@ document.addEventListener('click',e=>{ const a=e.target.closest('[data-room]'); 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
 /* ---------- booking ---------- */
-const state={ step:1, room:null, checkin:$('#qIn').value, checkout:$('#qOut').value, guests:1, details:{}, ref:null };
+const state={ step:1, room:null, checkin:$('#qIn').value, checkout:$('#qOut').value, guests:1, gender:'', details:{}, ref:null, booking:null };
+
+/* ---------- server API (falls back to demo mode when the site is opened without the server) ---------- */
+const API={ ok:false, mode:'preview', avail:null, availKey:'', seq:0 };
+async function api(path,opts={}){
+  const res=await fetch('/api'+path,{ headers:{'Content-Type':'application/json'}, ...opts });
+  let data={}; try{ data=await res.json(); }catch{}
+  if(!res.ok) throw new Error(data.error||'Something went wrong. Please try again.');
+  return data;
+}
+(async()=>{
+  try{
+    const cfg=await api('/config');
+    API.ok=true; API.mode=cfg.payment_mode;
+    for(const t of cfg.room_types){ const r=roomById(t.id); if(!r) continue;
+      r.price=t.coming_soon?null:t.base_price; r.soon=!!t.coming_soon; r.name=t.name; if(t.tag) r.tag=t.tag; }
+    renderRooms();
+    if(document.body.classList.contains('booking')) renderStep();
+  }catch(e){ /* no server: keep demo behaviour */ }
+})();
+const availFor=id=>API.avail&&API.availKey===availKey()?API.avail.room_types.find(x=>x.room_type_id===id):null;
+const availKey=()=>[state.checkin,state.checkout,state.gender].join('|');
 function go(h){ if(location.hash==='#'+h) route(); else location.hash=h; }
 function showHome(){ document.body.classList.remove('booking'); }
 function route(){
@@ -565,8 +587,11 @@ function totals(){
   const r=roomById(state.room); if(!r||r.soon) return null;
   const n=Math.max(0,nightsBetween(state.checkin,state.checkout));
   const u=unitsFor(r,state.guests);
-  const sub=r.price*u*n;
-  return { r,n,u,sub,total:sub };
+  const a=availFor(r.id);
+  const perUnit=a&&a.price_per_unit!=null?a.price_per_unit:r.price*n;   // whole stay, one bed
+  const peak=a&&a.nightly?a.nightly.some(x=>x.peak):false;
+  const sub=perUnit*u;
+  return { r,n,u,sub,total:sub,perUnit,peak };
 }
 function renderSummary(){
   const t=totals(), r=roomById(state.room);
@@ -575,8 +600,9 @@ function renderSummary(){
     <h3 style="font-size:24px;margin-bottom:10px">${r?r.name:'Your stay'}</h3>
     <div class="srow"><span>Check-in</span><b>${state.checkin?fmtDate(state.checkin):'—'}</b></div>
     <div class="srow"><span>Check-out</span><b>${state.checkout?fmtDate(state.checkout):'—'}</b></div>
-    <div class="srow"><span>Guests</span><b>${state.guests}</b></div>
-    ${t?`<div class="srow"><span>${money(t.r.price)} × ${t.u} ${t.r.unit}${t.u>1?'s':''} × ${t.n} night${t.n!==1?'s':''}</span><b>${money(t.sub)}</b></div>
+    <div class="srow"><span>Guests</span><b>${state.guests}${state.gender?' · '+(state.gender==='female'?'Female':'Male')+' dorm':''}</b></div>
+    ${t?`<div class="srow"><span>${money(t.perUnit)} per ${t.r.unit} for ${t.n} night${t.n!==1?'s':''} × ${t.u}</span><b>${money(t.sub)}</b></div>
+    ${t.peak?`<p style="font-size:12.5px;color:#8a5a0c;margin-top:4px">Includes peak-period rates for some nights.</p>`:''}
     <div class="stotal"><span>Total</span><span>${money(t.total)}</span></div>`:`<p style="font-size:13.5px;color:var(--muted);margin-top:10px">Select a room to see your total.</p>`}
   `;
 }
@@ -589,19 +615,22 @@ function renderStep(){
       <div class="g3">
         <div class="field"><label>Check-in</label><input type="date" id="bIn" min="${iso(today)}" value="${state.checkin}"></div>
         <div class="field"><label>Check-out</label><input type="date" id="bOut" min="${iso(addDays(today,1))}" value="${state.checkout}"></div>
-        <div class="field"><label>Guests</label><select id="bG">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===state.guests?'selected':''}>${n}</option>`).join('')}</select></div>
+        <div class="field"><label>Guests (1 bed each)</label><select id="bG">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===state.guests?'selected':''}>${n}</option>`).join('')}</select></div>
       </div>
+      <div class="field" style="margin-top:14px"><label>Booking for</label><select id="bGen"><option value="">Select female or male dorm</option><option value="female" ${state.gender==='female'?'selected':''}>Female dorm</option><option value="male" ${state.gender==='male'?'selected':''}>Male dorm</option></select></div>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:6px">Dorms are single-sex. Mixed groups can make one booking per dorm, or contact us.</p>
       <div class="field" style="margin-top:20px"><label>Room type</label></div>
       <div class="rpick">${CONFIG.rooms.map(r=>`
         <div class="ropt ${r.soon?'dis':''} ${state.room===r.id?'sel':''}" data-pick="${r.id}">
           ${photo(r.id,'')}
-          <div><div class="nm">${r.name}</div><div class="sm">${r.soon?'Opening in our next phase':r.capacity}</div></div>
+          <div><div class="nm">${r.name}</div><div class="sm" data-left="${r.id}">${r.soon?'Opening in a later phase':r.capacity}</div></div>
           <div class="pr">${r.soon?'Soon':money(r.price)}<small>${r.soon?'':'per '+r.unit+' / night'}</small></div>
         </div>`).join('')}</div>
       <div class="avail" id="avail"></div>
       <div class="err" id="err"></div>
       <div class="actions"><span></span><button class="btn btn-primary" id="next1">Continue</button></div>`;
-    const sync=()=>{ state.checkin=$('#bIn').value; state.checkout=$('#bOut').value; state.guests=+$('#bG').value; checkAvail(); renderSummary(); };
+    const sync=()=>{ state.checkin=$('#bIn').value; state.checkout=$('#bOut').value; state.guests=+$('#bG').value; state.gender=$('#bGen').value; checkAvail(); renderSummary(); };
+    $('#bGen').onchange=sync;
     $('#bIn').onchange=()=>{ const ni=new Date($('#bIn').value+"T12:00"); $('#bOut').min=iso(addDays(ni,1)); if($('#bOut').value<=$('#bIn').value) $('#bOut').value=iso(addDays(ni,1)); sync(); };
     $('#bOut').onchange=sync; $('#bG').onchange=sync;
     $$('[data-pick]').forEach(el=>el.onclick=()=>{ const r=roomById(el.dataset.pick); if(r.soon) return; state.room=r.id; $$('[data-pick]').forEach(x=>x.classList.toggle('sel',x===el)); checkAvail(); renderSummary(); });
@@ -614,8 +643,7 @@ function renderStep(){
       <form id="f2" style="display:grid;gap:14px">
         <div class="row2"><div class="field"><label>Full name</label><input name="name" required value="${d.name||''}"></div>
         <div class="field"><label>Phone / WhatsApp</label><input name="phone" type="tel" required value="${d.phone||''}"></div></div>
-        <div class="row2"><div class="field"><label>Email</label><input name="email" type="email" required value="${d.email||''}"></div>
-        <div class="field"><label>Gender (for dorm allocation)</label><select name="gender"><option value="">Select</option>${['Female','Male','Mixed group'].map(g=>`<option ${d.gender===g?'selected':''}>${g}</option>`).join('')}</select></div></div>
+        <div class="field"><label>Email (your confirmation and receipt go here)</label><input name="email" type="email" required value="${d.email||''}"></div>
         <div class="field"><label>Purpose of visit (optional)</label><input name="purpose" placeholder="e.g. Holy Ghost Service, convention, retreat" value="${d.purpose||''}"></div>
         <div class="field"><label>Special requests (optional)</label><textarea name="notes" rows="3">${d.notes||''}</textarea></div>
         <label class="check"><input type="checkbox" name="agree" ${d.agree?'checked':''}> I agree to the house rules and cancellation policy, and will bring a valid photo ID at check-in.</label>
@@ -626,7 +654,6 @@ function renderStep(){
     $('#f2').onsubmit=e=>{ e.preventDefault(); saveDetails(); const x=state.details;
       let err=''; if(!x.name||!x.phone||!x.email) err='Please fill in your name, phone and email.';
       else if(!/^\S+@\S+\.\S+$/.test(x.email)) err='Please enter a valid email address.';
-      else if(roomById(state.room).unit==='bed'&&!x.gender) err='Please select a gender so we can allocate the right dorm.';
       else if(!x.agree) err='Please agree to the house rules to continue.';
       $('#err').textContent=err; if(!err){ state.step=3; renderStep(); window.scrollTo(0,0);} };
   }
@@ -641,10 +668,21 @@ function renderStep(){
       <div class="srow"><span>Stay</span><b>${t.n} night${t.n!==1?'s':''}</b></div>
       <div class="stotal"><span>Amount due</span><span>${money(t.total)}</span></div>
       <div class="paybox"><b>Preview mode:</b> no money will be charged. When the site goes live, this button opens the secure payment window (card, bank transfer or USSD).</div>
+      <div class="err" id="err"></div>
       <div class="actions"><button class="btn btn-ghost" id="back3">Back</button><button class="btn btn-gold" id="pay">Pay ${money(t.total)}</button></div>`;
     $('#back3').onclick=()=>{ state.step=2; renderStep(); };
-    $('#pay').onclick=()=>{ const b=$('#pay'); b.disabled=true; b.textContent='Processing…';
-      setTimeout(()=>{ state.ref='SP-'+Math.random().toString(36).slice(2,8).toUpperCase(); state.step=4; renderStep(); window.scrollTo(0,0); },1200); };
+    $('#pay').onclick=async()=>{ const b=$('#pay'); b.disabled=true; b.textContent='Processing…'; $('#err').textContent='';
+      if(!API.ok){ // demo mode (no server)
+        setTimeout(()=>{ state.ref='SP-'+Math.random().toString(36).slice(2,8).toUpperCase(); state.booking=null; state.step=4; renderStep(); window.scrollTo(0,0); },1000); return; }
+      try{
+        const x=state.details;
+        const bk=await api('/bookings',{method:'POST',body:JSON.stringify({ room_type_id:state.room, checkin:state.checkin, checkout:state.checkout, beds:t.u,
+          guest:{ name:x.name, phone:x.phone, email:x.email, gender:state.gender, purpose:x.purpose, notes:x.notes } })});
+        // Step 3 of the build replaces this with the Paystack payment window.
+        const paid=await api('/bookings/'+bk.ref+'/preview-pay',{method:'POST',body:JSON.stringify({ email:x.email })});
+        state.ref=paid.ref; state.booking=paid; state.step=4; renderStep(); window.scrollTo(0,0);
+      }catch(e){ $('#err').textContent=e.message; b.disabled=false; b.textContent='Pay '+money(t.total); API.availKey=''; }
+    };
   }
   if(state.step===4){
     const t=totals();
@@ -653,29 +691,55 @@ function renderStep(){
       <h3 style="margin-bottom:6px">Booking confirmed!</h3>
       <p style="color:var(--muted)">Thank you, ${esc(state.details.name.split(' ')[0])}. Your stay at Serenity Place is reserved.</p>
       <div class="ref">${state.ref}</div>
-      <p style="color:var(--muted);font-size:14px;max-width:440px;margin:0 auto 22px">A confirmation would be sent to <b>${esc(state.details.email)}</b> and WhatsApp. Please show this reference and a valid photo ID at check-in.<br><i>(Preview only: no booking or payment was made.)</i></p>
+      ${state.booking?`<p style="font-size:14px;margin:0 auto 12px">${esc(state.booking.room_type.name)} · ${state.booking.beds} bed${state.booking.beds>1?'s':''} (${state.booking.allocation.map(a=>esc(a.room)+' '+esc(a.bed)).join(', ')})<br>${fmtDate(state.booking.checkin)} → ${fmtDate(state.booking.checkout)} · Paid ${money(state.booking.amount)}</p>`:''}
+      <p style="color:var(--muted);font-size:14px;max-width:440px;margin:0 auto 22px">Once email sending is switched on, your confirmation and receipt go to <b>${esc(state.details.email)}</b>. Please show this reference and a valid photo ID at check-in.<br><i>${state.booking?'(Preview mode: the booking is saved, but no money was taken.)':'(Demo only: nothing was saved.)'}</i></p>
       <button class="btn btn-primary" id="done">Back to home</button>
     </div>`;
-    $('#done').onclick=()=>{ state.step=1; state.details={}; state.ref=null; location.hash='top'; showHome(); window.scrollTo(0,0); };
+    $('#done').onclick=()=>{ state.step=1; state.details={}; state.ref=null; state.booking=null; API.availKey=''; location.hash='top'; showHome(); window.scrollTo(0,0); };
   }
 }
 function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function saveDetails(){ const f=$('#f2'); if(!f) return; const fd=new FormData(f); state.details={ name:(fd.get('name')||'').trim(), phone:(fd.get('phone')||'').trim(), email:(fd.get('email')||'').trim(), gender:fd.get('gender')||'', purpose:(fd.get('purpose')||'').trim(), notes:(fd.get('notes')||'').trim(), agree:!!fd.get('agree') }; }
+function saveDetails(){ const f=$('#f2'); if(!f) return; const fd=new FormData(f); state.details={ name:(fd.get('name')||'').trim(), phone:(fd.get('phone')||'').trim(), email:(fd.get('email')||'').trim(), purpose:(fd.get('purpose')||'').trim(), notes:(fd.get('notes')||'').trim(), agree:!!fd.get('agree') }; }
 function validate1(){
   if(!state.checkin||!state.checkout) return 'Please choose your check-in and check-out dates.';
   if(state.checkin<iso(today)) return 'Check-in date cannot be in the past.';
   if(nightsBetween(state.checkin,state.checkout)<1) return 'Check-out must be at least one night after check-in.';
+  if(!state.gender) return 'Please choose a female or male dorm.';
   if(!state.room) return 'Please choose a room type.';
   const r=roomById(state.room), u=unitsFor(r,state.guests);
-  if(u>r.available) return `Sorry, only ${r.available} ${r.unit}s of this type are available for those dates.`;
+  if(API.ok){
+    const a=availFor(r.id);
+    if(!a) return 'Checking availability… please try again in a moment.';
+    if(u>a.available) return a.available?`Sorry, only ${a.available} bed${a.available>1?'s':''} left in this dorm for those dates.`:'Sorry, this dorm is fully booked for those dates.';
+  }
   return '';
 }
-function checkAvail(){
+function showAvail(){
   const el=$('#avail'); if(!el) return; const r=roomById(state.room);
+  // beds-left labels on each room option
+  CONFIG.rooms.forEach(x=>{ const lbl=document.querySelector(`[data-left="${x.id}"]`); const a=availFor(x.id);
+    if(lbl&&!x.soon) lbl.textContent=a?(a.available?`${x.capacity} · ${a.available} bed${a.available>1?'s':''} left`:'Fully booked for these dates'):x.capacity; });
   if(!r||r.soon||nightsBetween(state.checkin,state.checkout)<1){ el.className='avail'; return; }
-  const u=unitsFor(r,state.guests);
-  if(u>r.available){ el.className='avail low'; el.textContent=`Only ${r.available} ${r.unit}s available. Reduce guests or contact us for a group booking.`; }
-  else { el.className='avail ok'; el.textContent=`✓ Available: ${u} ${r.unit}${u>1?'s':''} for ${nightsBetween(state.checkin,state.checkout)} night(s).`; }
+  const u=unitsFor(r,state.guests), n=nightsBetween(state.checkin,state.checkout);
+  if(API.ok){
+    if(!state.gender){ el.className='avail low'; el.textContent='Choose a female or male dorm to see availability.'; return; }
+    const a=availFor(r.id); if(!a){ el.className='avail ok'; el.textContent='Checking availability…'; return; }
+    if(u>a.available){ el.className='avail low'; el.textContent=a.available?`Only ${a.available} bed${a.available>1?'s':''} left for those dates. Reduce guests or contact us for a group booking.`:'Fully booked for those dates. Try other dates or contact us.'; }
+    else { el.className='avail ok'; el.textContent=`✓ Available: ${u} bed${u>1?'s':''} for ${n} night${n>1?'s':''}.`; }
+    return;
+  }
+  el.className='avail ok'; el.textContent=`✓ Available: ${u} ${r.unit}${u>1?'s':''} for ${n} night(s).`;
+}
+async function checkAvail(){
+  showAvail();
+  if(!API.ok||!state.gender||nightsBetween(state.checkin,state.checkout)<1) return;
+  const key=availKey(); if(API.availKey===key) return;
+  const my=++API.seq;
+  try{
+    const data=await api(`/availability?checkin=${state.checkin}&checkout=${state.checkout}&gender=${state.gender}`);
+    if(my!==API.seq) return;
+    API.avail=data; API.availKey=key; showAvail(); renderSummary();
+  }catch(e){ if(my===API.seq){ const el=$('#avail'); if(el){ el.className='avail low'; el.textContent=e.message; } } }
 }
 
 /* contact form */

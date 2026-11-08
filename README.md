@@ -2,33 +2,62 @@
 
 *Pristine Living. Peaceful Stays. · Ìtura àti Àlàáfíà.*
 
-The website for Serenity Place Residences: rooms, rates and online booking.
+Website and booking system for Serenity Place Residences.
 
-## What's here
+## Structure
 
-- `index.html` is the whole website in one file, with the logo built in.
-- `assets/logo.png` is the original logo.
-- `assets/photos/` is where the real room photos will go.
+| Path | What it is |
+| --- | --- |
+| `public/index.html` | The website. Text, photos and contact details live in its `CONFIG` block. |
+| `public/assets/` | Logo, and `photos/` for real room photos. |
+| `server.js` | Entry point (`npm start`). |
+| `server/app.js` | Routes: website, booking API, staff/owner login. |
+| `server/booking.js` | Availability, peak pricing, bed allocation, bookings, payments. |
+| `server/db.js` | Database connection, setup and placeholder data. |
+| `server/schema.sql` | Database tables. |
 
-## Updating content
+## How bookings work
 
-All business details sit in the `CONFIG` block near the bottom of `index.html`:
-room names, prices, availability, amenities, FAQs, contact details, location and photos.
+- Each bed is booked night by night, and the database refuses any bed–night that is already taken, so double-booking can't happen.
+- Beds marked `online = false` are the walk-in reserve: never sold on the website, only by staff.
+- Dorms are single-sex. Guests choose a female or male dorm, and a group is kept in one room where possible.
+- Peak-period prices apply automatically to nights that fall inside a peak period.
+- Unpaid online bookings hold their beds for 30 minutes, then the beds are released.
+- Payment is in **preview mode** (no money taken) until Paystack is connected.
 
-To add a photo, put the image in `assets/photos/` and set its path in `CONFIG.photos`,
-e.g. `dorm8: "assets/photos/dorm8.jpg"`. Any photo left as `null` shows a branded placeholder.
+Placeholder data (6 dorms, 40 beds, sample prices, one sample peak period) is created only in an empty database. It will be editable from the owner dashboard.
 
-## Status
+## Settings (secrets)
 
-- Version 1 has placeholder photos and prices, because the building is still under construction.
-- Payment is in preview mode. Live payments (Paystack or Flutterwave) come in the next phase.
+See `.env.example`. On GoDaddy, add them under **Settings → Secrets**. Never commit real values.
 
-## Previewing online
+| Name | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Neon Postgres connection string. Without it, data is temporary and lost on restart. |
+| `SESSION_SECRET` | Long random string that secures staff and owner logins. |
+| `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | First owner account, created on first start. |
+| `PAYMENT_MODE` | `preview` for now; `live` once Paystack is set up. |
 
-Turn on GitHub Pages under **Settings → Pages → Deploy from branch → main / (root)**.
+## API (so far)
+
+| Method | Path | Who |
+| --- | --- | --- |
+| GET | `/api/config` | Public: room types, prices, peak periods |
+| GET | `/api/availability?checkin=&checkout=&gender=` | Public |
+| POST | `/api/bookings` | Public: creates a booking and holds the beds |
+| GET | `/api/bookings/:ref?email=` | Guest lookup |
+| POST | `/api/bookings/:ref/preview-pay` | Preview mode only |
+| POST | `/api/auth/login`, `/api/auth/logout`, GET `/api/auth/me` | Staff and owner |
+| GET | `/api/admin/arrivals?date=` | Staff and owner: guests arriving on a date |
+
+## Running locally
+
+```
+npm install
+npm start            # http://localhost:3000
+```
 
 ## Hosting on GoDaddy Node.js Hosting
 
-The repo includes `package.json` and a small `server.js` (no dependencies) so GoDaddy can run it.
-In GoDaddy Node.js Hosting choose **Connect GitHub**, pick this repository and the `main` branch, then **Import & Deploy**.
-To test locally: `npm start`, then open http://localhost:3000.
+Connect GitHub, pick this repository and the `main` branch, add the secrets above, then **Import & Deploy**.
+After later changes, use **Pull from GitHub**.
