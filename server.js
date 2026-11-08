@@ -10,6 +10,9 @@ db.connect()
     createApp().listen(PORT, HOST, () => console.log(`Serenity Place running on http://${HOST}:${PORT}`));
   })
   .catch((err) => {
-    console.error("Failed to start:", err);
+    console.error("Failed to start:", err && err.message ? err.message : err);
+    if (process.env.DATABASE_URL) {
+      console.error("Check the DATABASE_URL secret in GoDaddy (Settings → Secrets): it must be the full Neon connection string.");
+    }
     process.exit(1);
   });
