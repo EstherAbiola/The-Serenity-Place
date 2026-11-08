@@ -9,7 +9,7 @@ const MAX_AGE_HOURS = 12;
 let SECRET = process.env.SESSION_SECRET;
 if (!SECRET) {
   SECRET = crypto.randomBytes(32).toString("hex");
-  console.warn("[auth] SESSION_SECRET not set: using a random one. Everyone is logged out whenever the app restarts.");
+  console.log("[auth] Using a temporary login key; staff will need to log in again after each restart.");
 }
 
 function sign(data) {
@@ -86,16 +86,39 @@ function requireRole(...roles) {
   };
 }
 
-// Signed booking-reference tokens for receipt links (valid for 7 days).
-function signRef(ref) {
-  const exp = Date.now() + 7 * 24 * 3600e3;
-  return `${exp}.${sign(`ref:${ref}:${exp}`)}`;
-}
-function checkRef(ref, token) {
-  const [exp, sig] = String(token).split(".");
-  if (!exp || !sig || Number(exp) < Date.now()) return false;
-  const expected = sign(`ref:${ref}:${exp}`);
-  return sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+// ---- First-run owner setup (no secrets needed) ----
+// If no owner account exists, a one-time setup code is printed to the server logs
+// (GoDaddy → Runtime Logs). Only someone who can see the logs can create the owner login.
+let setupCode = null;
+
+async function prepareOwnerSetup() {
+  const { rows } = await db.query("SELECT COUNT(*)::int AS n FROM users WHERE role = 'owner'");
+  if (Number(rows[0].n) > 0) { setupCode = null; return; }
+  const raw = crypto.randomBytes(4).toString("hex").toUpperCase();
+  setupCode = raw.slice(0, 4) + "-" + raw.slice(4);
+  console.error(`[setup] No owner account yet. Open /staff and use this one-time setup code: ${setupCode}`);
 }
 
-module.exports = { login, logout, loadUser, requireRole, signRef, checkRef };
+async function setupStatus(req, res) {
+  res.json({ needs_setup: Boolean(setupCode) });
+}
+
+async function setupOwner(req, res) {
+  if (!setupCode) return res.status(409).json({ error: "The owner account is already set up. Please log in." });
+  const code = String(req.body?.code || "").trim().toUpperCase();
+  const ok = code.length === setupCode.length && crypto.timingSafeEqual(Buffer.from(code), Buffer.from(setupCode));
+  if (!ok) return res.status(403).json({ error: "That setup code is not correct. Copy it from GoDaddy → Runtime Logs." });
+  const name = String(req.body?.name || "").trim().slice(0, 100);
+  const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 160);
+  const password = String(req.body?.password || "");
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Enter your name and a valid email." });
+  if (password.length < 8) return res.status(400).json({ error: "Choose a password of at least 8 characters." });
+  const hash = await bcrypt.hash(password, 10);
+  const { rows } = await db.query("INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,'owner') RETURNING id, name, email, role", [name, email, hash]);
+  setupCode = null;
+  console.error(`[setup] Owner account created for ${email}.`);
+  setCookie(res, makeToken(rows[0].id), MAX_AGE_HOURS * 3600);
+  res.status(201).json({ user: rows[0] });
+}
+
+module.exports = { login, logout, loadUser, requireRole, prepareOwnerSetup, setupStatus, setupOwner };

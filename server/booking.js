@@ -207,7 +207,8 @@ async function createBooking(input, { channel = "online", userId = null } = {}) 
     const amount = priced.reduce((s, n) => s + n.price, 0) * beds;
     const ref = newRef();
     const status = "pending";
-    const expires = channel === "online" ? new Date(Date.now() + HOLD_MINUTES * 60000).toISOString() : null;
+    // No online payment yet: every booking is a reservation paid at the front desk, so it doesn't expire.
+    const expires = null;
 
     const { rows: bRows } = await client.query(
       `INSERT INTO bookings (ref, room_type_id, checkin, checkout, nights, beds_count, amount,
@@ -243,7 +244,7 @@ async function createBooking(input, { channel = "online", userId = null } = {}) 
 }
 
 // Record a successful payment and confirm the booking. Safe to call twice with the same reference.
-// If the 30-minute hold ran out before the money arrived, try to give the guest beds again;
+// If a booking had expired before payment, try to give the guest beds again;
 // if none are left, the booking is flagged "needs_attention" so staff can refund or rehouse them.
 async function confirmPayment(ref, { method, reference = null, amount = null, userId = null }) {
   return db.tx(async (client) => {
@@ -254,9 +255,6 @@ async function confirmPayment(ref, { method, reference = null, amount = null, us
     if (reference) {
       const dup = await client.query("SELECT id FROM payments WHERE reference = $1", [reference]);
       if (dup.rows.length) return getBooking(ref, client); // already recorded
-    }
-    if (method === "preview" && b.status !== "pending") {
-      throw new BookingError(b.status === "expired" ? "This booking's hold expired before payment. Please book again." : "This booking is already paid.", 409, b.status);
     }
 
     let status = b.status;
@@ -288,14 +286,6 @@ async function confirmPayment(ref, { method, reference = null, amount = null, us
   });
 }
 
-// Give a pending online booking a fresh hold while the guest is on the payment page.
-async function extendHold(ref) {
-  await db.query(
-    "UPDATE bookings SET expires_at = $1 WHERE ref = $2 AND status = 'pending'",
-    [new Date(Date.now() + HOLD_MINUTES * 60000).toISOString(), ref]
-  );
-}
-
 async function getBooking(ref, client = db) {
   const { rows } = await client.query(
     `SELECT b.*, t.name AS room_type_name FROM bookings b JOIN room_types t ON t.id = b.room_type_id WHERE b.ref = $1`,
@@ -325,6 +315,6 @@ async function getBooking(ref, client = db) {
 }
 
 module.exports = {
-  BookingError, availability, createBooking, confirmPayment, extendHold, getBooking, freeBeds, allocate, nightsBetween, validateStay, getRoomTypes, getPeakPeriods,
+  BookingError, availability, createBooking, confirmPayment, getBooking, freeBeds, allocate, nightsBetween, validateStay, getRoomTypes, getPeakPeriods,
   releaseExpired, todayLagos, HOLD_MINUTES,
 };

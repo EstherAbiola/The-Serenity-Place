@@ -394,7 +394,7 @@ body.booking main{display:none}
     <button class="backlink" id="backHome">← Back to site</button>
     <div class="eyebrow" style="margin-top:18px">Reservations</div>
     <h2 style="font-size:clamp(32px,4vw,46px);margin-top:6px">Book your stay</h2>
-    <div class="steps" id="steps"><div>1 · Room &amp; dates</div><div>2 · Your details</div><div>3 · Review &amp; pay</div><div>4 · Confirmed</div></div>
+    <div class="steps" id="steps"><div>1 · Room &amp; dates</div><div>2 · Your details</div><div>3 · Review &amp; reserve</div><div>4 · Confirmed</div></div>
     <div class="bk">
       <div class="panel" id="stepPanel"></div>
       <aside class="panel summary" id="summary"></aside>
@@ -457,7 +457,7 @@ const CONFIG = {
   location: [["Address","[Full address to be added]"],["Landmark","[Near the camp, main gate / nearest landmark]"],["Check-in","From 2:00 PM"],["Check-out","By 12:00 noon"]],
   contact: { phone:"+234 [000 000 0000]", whatsapp:"+234 [000 000 0000]", email:"[bookings@yourdomain.com]" },
   faqs: [
-    ["How do I pay for my booking?","You can pay online by card, bank transfer or USSD at the end of the booking process. You'll get a confirmation and booking reference immediately."],
+    ["How do I pay for my booking?","Reserve online and pay at the front desk when you arrive, by cash, POS or bank transfer. You'll get a booking reference as soon as you reserve."],
     ["What do I need at check-in?","A valid government-issued photo ID and your booking reference."],
     ["Can I cancel or change my booking?","[Placeholder policy] Free changes up to 72 hours before check-in. Cancellations within 72 hours may not be refundable."],
     ["Do you take group bookings?","Yes. For groups of 10 or more, or full-room bookings for events, contact us directly for a group rate."],
@@ -573,7 +573,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 const state={ step:1, room:null, checkin:$('#qIn').value, checkout:$('#qOut').value, guests:1, gender:'', details:{}, ref:null, booking:null };
 
 /* ---------- server API (falls back to demo mode when the site is opened without the server) ---------- */
-const API={ ok:false, down:false, mode:'preview', test:false, avail:null, availKey:'', seq:0, notice:'' };
+const API={ ok:false, down:false, avail:null, availKey:'', seq:0, notice:'' };
 async function api(path,opts={}){
   const res=await fetch('/api'+path,{ headers:{'Content-Type':'application/json'}, ...opts });
   let data={}; try{ data=await res.json(); }catch{}
@@ -584,11 +584,10 @@ async function api(path,opts={}){
 (async()=>{
   try{
     const cfg=await api('/config');
-    API.ok=true; API.mode=cfg.payment_mode; API.test=!!cfg.payment_test;
+    API.ok=true;
     for(const t of cfg.room_types){ const r=roomById(t.id); if(!r) continue;
       r.price=t.coming_soon?null:t.base_price; r.soon=!!t.coming_soon; r.name=t.name; if(t.tag) r.tag=t.tag; }
     renderRooms();
-    await handlePaymentReturn();
     if(document.body.classList.contains('booking')) renderStep();
   }catch(e){
     if(API.down){ API.notice='Online booking is temporarily unavailable. Please try again in a few minutes, or call or WhatsApp us to book.';
@@ -596,30 +595,13 @@ async function api(path,opts={}){
     /* otherwise no server at all: keep demo behaviour */
   }
 })();
-// Coming back from Paystack: show the receipt, or explain that payment didn't go through.
-async function handlePaymentReturn(){
-  const q=new URLSearchParams(location.search);
-  if(!q.has('paid')&&!q.has('payfail')) return;
-  history.replaceState(null,'',location.pathname+'#book');
-  if(q.has('paid')){
-    try{
-      const b=await api(`/bookings/${encodeURIComponent(q.get('paid'))}/receipt?t=${encodeURIComponent(q.get('t')||'')}`);
-      state.booking=b; state.ref=b.ref; state.room=b.room_type.id; state.checkin=b.checkin; state.checkout=b.checkout;
-      state.guests=b.beds; state.gender=b.guest.gender||''; state.details={ name:b.guest.name, email:b.guest.email||'', phone:b.guest.phone };
-      state.step=4; state.fromReturn=true;
-    }catch(e){ API.notice='We received you back from the payment page but could not load your booking. Please contact us with your payment reference.'; }
-  } else {
-    API.notice="Your payment wasn't completed, so nothing was charged. You can try again below.";
-  }
-  document.body.classList.add('booking');
-}
 const availFor=id=>API.avail&&API.availKey===availKey()?API.avail.room_types.find(x=>x.room_type_id===id):null;
 const availKey=()=>[state.checkin,state.checkout,state.gender].join('|');
 function go(h){ if(location.hash==='#'+h) route(); else location.hash=h; }
 function showHome(){ document.body.classList.remove('booking'); }
 function route(){
   const h=location.hash.slice(1);
-  if(h==='book'){ document.body.classList.add('booking'); if(state.step===4&&!state.fromReturn){ state.step=1; state.ref=null; } state.fromReturn=false; renderStep(); window.scrollTo(0,0); }
+  if(h==='book'){ document.body.classList.add('booking'); if(state.step===4){ state.step=1; state.ref=null; } renderStep(); window.scrollTo(0,0); }
   else { showHome(); if(h){ const el=document.getElementById(h); if(el) setTimeout(()=>el.scrollIntoView(),10);} }
 }
 window.addEventListener('hashchange',route);
@@ -690,7 +672,7 @@ function renderStep(){
       <form id="f2" style="display:grid;gap:14px">
         <div class="row2"><div class="field"><label>Full name</label><input name="name" required value="${d.name||''}"></div>
         <div class="field"><label>Phone / WhatsApp</label><input name="phone" type="tel" required value="${d.phone||''}"></div></div>
-        <div class="field"><label>Email (your confirmation and receipt go here)</label><input name="email" type="email" required value="${d.email||''}"></div>
+        <div class="field"><label>Email</label><input name="email" type="email" required value="${d.email||''}"></div>
         <div class="field"><label>Purpose of visit (optional)</label><input name="purpose" placeholder="e.g. Holy Ghost Service, convention, retreat" value="${d.purpose||''}"></div>
         <div class="field"><label>Special requests (optional)</label><textarea name="notes" rows="3">${d.notes||''}</textarea></div>
         <label class="check"><input type="checkbox" name="agree" ${d.agree?'checked':''}> I agree to the house rules and cancellation policy, and will bring a valid photo ID at check-in.</label>
@@ -706,58 +688,40 @@ function renderStep(){
   }
   if(state.step===3){
     const t=totals(), x=state.details;
-    P.innerHTML=`<h3>Review &amp; pay</h3>
+    P.innerHTML=`<h3>Review &amp; reserve</h3>
       <div class="srow"><span>Guest</span><b>${esc(x.name)}</b></div>
       <div class="srow"><span>Phone</span><b>${esc(x.phone)}</b></div>
       <div class="srow"><span>Email</span><b>${esc(x.email)}</b></div>
       ${x.purpose?`<div class="srow"><span>Purpose</span><b>${esc(x.purpose)}</b></div>`:''}
       <div class="srow"><span>Room</span><b>${t.r.name} · ${t.u} ${t.r.unit}${t.u>1?'s':''}</b></div>
       <div class="srow"><span>Stay</span><b>${t.n} night${t.n!==1?'s':''}</b></div>
-      <div class="stotal"><span>Amount due</span><span>${money(t.total)}</span></div>
-      ${API.mode==='paystack'
-        ?`<div class="paybox" style="border-style:solid;border-color:var(--line);background:var(--sel);color:var(--heading)">You'll go to <b>Paystack's secure page</b> to pay by card, bank transfer or USSD, then come straight back here. Your beds are held for 30 minutes while you pay.${API.test?'<br><b>Test mode:</b> use Paystack test cards; no real money moves.':''}</div>`
-        :`<div class="paybox"><b>Preview mode:</b> no money will be charged. When payments are switched on, this button opens Paystack's secure page (card, bank transfer or USSD).</div>`}
+      <div class="stotal"><span>To pay on arrival</span><span>${money(t.total)}</span></div>
+      <div class="paybox" style="border-style:solid;border-color:var(--line);background:var(--sel);color:var(--heading)"><b>No payment needed now.</b> Your beds are reserved, and you pay at the front desk when you arrive, by cash, POS or bank transfer.</div>
       <div class="err" id="err"></div>
-      <div class="actions"><button class="btn btn-ghost" id="back3">Back</button><button class="btn btn-gold" id="pay">Pay ${money(t.total)}</button></div>`;
+      <div class="actions"><button class="btn btn-ghost" id="back3">Back</button><button class="btn btn-gold" id="pay">Reserve now</button></div>`;
     $('#back3').onclick=()=>{ state.step=2; renderStep(); };
-    $('#pay').onclick=async()=>{ const b=$('#pay'); b.disabled=true; b.textContent='Processing…'; $('#err').textContent='';
-      if(API.down){ $('#err').textContent='Online booking is temporarily unavailable. Please try again shortly.'; b.disabled=false; b.textContent='Pay '+money(t.total); return; }
+    $('#pay').onclick=async()=>{ const b=$('#pay'); b.disabled=true; b.textContent='Reserving…'; $('#err').textContent='';
+      if(API.down){ $('#err').textContent='Online booking is temporarily unavailable. Please try again shortly.'; b.disabled=false; b.textContent='Reserve now'; return; }
       if(!API.ok){ // demo mode (no server)
-        setTimeout(()=>{ state.ref='SP-'+Math.random().toString(36).slice(2,8).toUpperCase(); state.booking=null; state.step=4; renderStep(); window.scrollTo(0,0); },1000); return; }
+        setTimeout(()=>{ state.ref='SP-'+Math.random().toString(36).slice(2,8).toUpperCase(); state.booking=null; state.step=4; renderStep(); window.scrollTo(0,0); },800); return; }
       try{
-        const x=state.details;
-        // Reuse the booking if this is a retry for the same stay, so beds aren't held twice.
-        const key=[state.room,state.checkin,state.checkout,t.u,state.gender,x.email].join('|');
-        if(!state.pending||state.pending.key!==key){
-          const bk=await api('/bookings',{method:'POST',body:JSON.stringify({ room_type_id:state.room, checkin:state.checkin, checkout:state.checkout, beds:t.u,
-            guest:{ name:x.name, phone:x.phone, email:x.email, gender:state.gender, purpose:x.purpose, notes:x.notes } })});
-          state.pending={ key, ref:bk.ref };
-        }
-        const ref=state.pending.ref;
-        if(API.mode==='paystack'){
-          b.textContent='Opening secure payment…';
-          const p=await api('/bookings/'+ref+'/pay',{method:'POST',body:JSON.stringify({ email:x.email })});
-          location.href=p.authorization_url; return;
-        }
-        const paid=await api('/bookings/'+ref+'/preview-pay',{method:'POST',body:JSON.stringify({ email:x.email })});
-        state.pending=null; state.ref=paid.ref; state.booking=paid; state.step=4; renderStep(); window.scrollTo(0,0);
-      }catch(e){ $('#err').textContent=e.message; b.disabled=false; b.textContent='Pay '+money(t.total); API.availKey='';
-        if(/expired|already paid|taken|booked/i.test(e.message)) state.pending=null; }
+        const bk=await api('/bookings',{method:'POST',body:JSON.stringify({ room_type_id:state.room, checkin:state.checkin, checkout:state.checkout, beds:t.u,
+          guest:{ name:x.name, phone:x.phone, email:x.email, gender:state.gender, purpose:x.purpose, notes:x.notes } })});
+        state.ref=bk.ref; state.booking=bk; state.step=4; renderStep(); window.scrollTo(0,0);
+      }catch(e){ $('#err').textContent=e.message; b.disabled=false; b.textContent='Reserve now'; API.availKey=''; }
     };
   }
   if(state.step===4){
-    const t=totals();
     P.innerHTML=`<div class="conf">
       <div class="tick"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-10"/></svg></div>
-      <h3 style="margin-bottom:6px">${state.booking&&state.booking.status==='needs_attention'?'Payment received':'Booking confirmed!'}</h3>
+      <h3 style="margin-bottom:6px">Reservation confirmed!</h3>
       <p style="color:var(--muted)">Thank you, ${esc(state.details.name.split(' ')[0])}. Your stay at Serenity Place is reserved.</p>
       <div class="ref">${state.ref}</div>
-      ${state.booking?`<p style="font-size:14px;margin:0 auto 12px">${esc(state.booking.room_type.name)} · ${state.booking.beds} bed${state.booking.beds>1?'s':''} (${state.booking.allocation.map(a=>esc(a.room)+' '+esc(a.bed)).join(', ')})<br>${fmtDate(state.booking.checkin)} → ${fmtDate(state.booking.checkout)} · Paid ${money(state.booking.amount)}</p>
-      ${state.booking.status==='needs_attention'?`<p class="err" style="margin:0 auto 12px;max-width:440px">Your payment arrived after the beds were released and this dorm is now full. Our team will contact you to rehouse you or refund you.</p>`:''}`:''}
-      <p style="color:var(--muted);font-size:14px;max-width:440px;margin:0 auto 22px">Once email sending is switched on, your confirmation and receipt go to <b>${esc(state.details.email)}</b>. Please show this reference and a valid photo ID at check-in.<br><i>${!state.booking?'(Demo only: nothing was saved.)':state.booking.payments.some(p=>p.method==='paystack')?'':'(Preview mode: the booking is saved, but no money was taken.)'}</i></p>
+      ${state.booking?`<p style="font-size:14px;margin:0 auto 12px">${esc(state.booking.room_type.name)} · ${state.booking.beds} bed${state.booking.beds>1?'s':''} (${state.booking.allocation.map(a=>esc(a.room)+' '+esc(a.bed)).join(', ')})<br>${fmtDate(state.booking.checkin)} → ${fmtDate(state.booking.checkout)}<br><b>To pay on arrival: ${money(state.booking.amount)}</b> (cash, POS or bank transfer)</p>`:''}
+      <p style="color:var(--muted);font-size:14px;max-width:440px;margin:0 auto 22px">Please keep this reference and bring a valid photo ID to check in.${state.booking?'':'<br><i>(Demo only: nothing was saved.)</i>'}</p>
       <button class="btn btn-primary" id="done">Back to home</button>
     </div>`;
-    $('#done').onclick=()=>{ state.step=1; state.details={}; state.ref=null; state.booking=null; state.pending=null; API.availKey=''; API.notice=''; location.hash='top'; showHome(); window.scrollTo(0,0); };
+    $('#done').onclick=()=>{ state.step=1; state.details={}; state.ref=null; state.booking=null; API.availKey=''; API.notice=''; location.hash='top'; showHome(); window.scrollTo(0,0); };
   }
 }
 function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
