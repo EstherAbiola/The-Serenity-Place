@@ -38,7 +38,7 @@ button,input,select,textarea{font:inherit}
 .tabs button{border:0;background:none;padding:9px 14px;border-radius:999px;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
 .tabs button.on{background:var(--green);color:#fff}
 @media(max-width:720px){
-  .tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;z-index:30}
+  .tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));justify-content:flex-start;z-index:30}
   .tabs button{padding:8px 8px;font-size:12px;border-radius:10px}
 }
 section{display:none;padding:14px 0 30px}
@@ -111,6 +111,31 @@ section.on{display:block}
 .kv span{color:var(--muted)}
 .kv b{text-align:right;font-weight:600}
 .events{font-size:12.5px;color:var(--muted);margin-top:10px;display:grid;gap:4px}
+/* owner pages */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.period{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.period input{padding:7px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.rows{display:grid;gap:6px}
+.rowline{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.rowline span{color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.two{grid-template-columns:1fr}}
+.chart{width:100%;height:160px;display:block}
+.chart rect.bar{fill:var(--green)}
+.chart rect.bar.peak{fill:var(--gold)}
+.chart text{fill:var(--muted);font-size:10px;font-family:Montserrat,sans-serif}
+.dl{display:flex;gap:8px;flex-wrap:wrap}
+.set-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
+.set-card .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.set-card .row .field{flex:1;min-width:120px}
+.bedchips{display:flex;flex-wrap:wrap;gap:6px}
+.bedchips select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:12.5px;background:var(--surface);color:var(--ink)}
+.bedchips label{display:flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600}
+.h3s{font-size:22px;margin:22px 0 8px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px}
+.toggle input{width:18px;height:18px;accent-color:var(--green)}
 /* login */
 .login{max-width:380px;margin:12vh auto 0;padding:0 16px}
 .login .card{display:grid;gap:14px}
@@ -154,7 +179,10 @@ section.on{display:block}
       <button data-tab="board">Beds</button>
       <button data-tab="new">New booking</button>
       <button data-tab="find">Find</button>
-      <button data-tab="team" class="hide" id="teamTab">Team</button>
+      <button data-tab="dashboard" class="hide" data-roles="owner">Dashboard</button>
+      <button data-tab="expenses" class="hide" data-roles="owner manager">Expenses</button>
+      <button data-tab="settings" class="hide" data-roles="owner">Settings</button>
+      <button data-tab="team" class="hide" id="teamTab" data-roles="owner">Team</button>
     </nav>
 
     <section id="s-today" class="on">
@@ -216,6 +244,74 @@ section.on{display:block}
       <div class="list" id="findList" style="margin-top:12px"></div>
     </section>
 
+    <section id="s-dashboard">
+      <div class="h"><div><h2>Dashboard</h2><div class="sub">Money in, occupancy and costs for the period.</div></div></div>
+      <div class="period" id="dashPeriod"></div>
+      <div class="grid" id="dashStats"></div>
+      <h3 class="h3s">Occupancy by night</h3>
+      <div class="card"><svg class="chart" id="dashChart" role="img" aria-label="Beds sold each night"></svg><div class="sub" id="dashChartNote"></div></div>
+      <div class="two" style="margin-top:12px">
+        <div class="card"><h3 style="font-size:20px;margin-bottom:6px">Money in</h3><div class="rows" id="dashMoney"></div></div>
+        <div class="card"><h3 style="font-size:20px;margin-bottom:6px">Expenses</h3><div class="rows" id="dashExp"></div></div>
+      </div>
+      <h3 class="h3s">Download for your accountant</h3>
+      <div class="dl" id="dashDl"></div>
+      <h3 class="h3s">Bookings starting in this period</h3>
+      <div class="chips" id="dashStatus" style="margin-bottom:10px"></div>
+      <div class="list" id="dashBookings"></div>
+    </section>
+
+    <section id="s-expenses">
+      <div class="h"><div><h2>Expenses</h2><div class="sub" id="expSub">Log every cost as it happens, with a photo of the receipt.</div></div></div>
+      <form class="card form" id="expForm">
+        <h3 style="font-size:22px">Log an expense</h3>
+        <div class="f3">
+          <div class="field"><label>Date</label><input type="date" name="spent_on" required></div>
+          <div class="field"><label>Amount (₦)</label><input name="amount" inputmode="numeric" placeholder="e.g. 8500" required></div>
+          <div class="field"><label>Category</label><select name="category" required></select></div>
+        </div>
+        <div class="field"><label>What was it for?</label><input name="description" placeholder="e.g. Electrician fixed ceiling fan" required></div>
+        <div class="f3">
+          <div class="field"><label>Room (if any)</label><select name="room_id"><option value="">Not for a room</option></select></div>
+          <div class="field"><label>Paid to</label><input name="paid_to" placeholder="e.g. Mr Bayo (electrician)"></div>
+          <div class="field"><label>Paid by</label><select name="method"><option value="cash">Cash</option><option value="transfer">Bank transfer</option><option value="pos">POS</option></select></div>
+        </div>
+        <div class="field"><label>Receipt photo (optional)</label><input type="file" name="receipt" accept="image/*" capture="environment"></div>
+        <div class="err" id="expErr"></div>
+        <button class="btn gold" style="justify-content:center;padding:12px">Save expense</button>
+      </form>
+      <div class="period" id="expPeriod" style="margin-top:18px"></div>
+      <div class="grid" id="expStats"></div>
+      <div class="chips" id="expStatus" style="margin:12px 0"></div>
+      <div class="list" id="expList"></div>
+    </section>
+
+    <section id="s-settings">
+      <div class="h"><div><h2>Settings</h2><div class="sub">Prices, peak periods, rooms and beds. Changes apply to the website straight away.</div></div></div>
+      <div class="err" id="setErr"></div>
+      <h3 class="h3s">Prices</h3>
+      <div class="list" id="setTypes"></div>
+      <h3 class="h3s">Peak periods</h3>
+      <div class="sub" style="margin-bottom:8px">Nights inside a peak period use the peak price. Leave a price empty to use the normal price.</div>
+      <div class="list" id="setPeaks"></div>
+      <h3 class="h3s">Rooms &amp; beds</h3>
+      <div class="sub" style="margin-bottom:8px">Walk-in reserve beds never show on the website; only staff can sell them.</div>
+      <div class="list" id="setRooms"></div>
+      <form class="set-card" id="addRoom" style="margin-top:10px">
+        <b>Add a room</b>
+        <div class="row">
+          <div class="field"><label>Name</label><input name="name" placeholder="e.g. Dorm G" required></div>
+          <div class="field"><label>Room type</label><select name="room_type_id"></select></div>
+          <div class="field"><label>Dorm</label><select name="gender"><option value="female">Female</option><option value="male">Male</option><option value="mixed">Mixed</option></select></div>
+          <div class="field"><label>Beds</label><input name="beds" type="number" min="1" max="40" value="8"></div>
+          <div class="field"><label>Walk-in reserve</label><input name="reserve" type="number" min="0" max="40" value="2"></div>
+        </div>
+        <button class="btn" style="justify-self:start">Add room</button>
+      </form>
+      <h3 class="h3s">Expense approvals</h3>
+      <form class="set-card" id="setGeneral"><div class="row"><div class="field"><label>Manager expenses above this need your approval (₦)</label><input name="expense_approval_limit" inputmode="numeric"></div><button class="btn">Save</button></div></form>
+    </section>
+
     <section id="s-team">
       <div class="h"><div><h2>Team</h2><div class="sub">Give staff and managers their own login. They should change the temporary password later.</div></div></div>
       <div class="list" id="teamList"></div>
@@ -234,7 +330,7 @@ section.on{display:block}
 
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const money=n=>'₦'+Number(n||0).toLocaleString('en-NG');
+const money=n=>{ const v=Number(n||0); return (v<0?'-':'')+'₦'+Math.abs(v).toLocaleString('en-NG'); };
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=d=>new Date(d+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
 const addDays=(d,n)=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
@@ -269,19 +365,20 @@ $('#logout').onclick=async()=>{ await post('/auth/logout'); location.reload(); }
 async function start(user){
   ME=user; $('#whoName').textContent=`${user.name} · ${user.role}`;
   $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide');
-  $('#teamTab').classList.toggle('hide',user.role!=='owner');
-  const cfg=await api('/config'); TODAY=cfg.today; TYPES=cfg.room_types.filter(t=>!t.coming_soon);
+  $$('#tabs [data-roles]').forEach(b=>b.classList.toggle('hide',!b.dataset.roles.split(' ').includes(user.role)));
+  const cfg=await api('/config'); TODAY=cfg.today; TYPES=cfg.room_types.filter(t=>!t.coming_soon); window.CFG_PEAKS=cfg.peak_periods;
   initNewForm(); $('#boardStart').value=TODAY;
   show(location.hash.slice(1)||'today');
 }
 
 /* ---------- tabs ---------- */
 function show(tab){
-  if(!$('#s-'+tab)||(tab==='team'&&ME.role!=='owner')) tab='today';
+  const btn=$(`#tabs [data-tab="${tab}"]`);
+  if(!$('#s-'+tab)||!btn||btn.classList.contains('hide')) tab='today';
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   $$('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+tab));
   history.replaceState(null,'','#'+tab);
-  Promise.resolve(({today:loadToday,upcoming:loadUpcoming,board:loadBoard,team:loadTeam,find:()=>$('#findQ').focus()}[tab]||(()=>{}))())
+  Promise.resolve(({today:loadToday,upcoming:loadUpcoming,board:loadBoard,team:loadTeam,dashboard:loadDashboard,expenses:loadExpenses,settings:loadSettings,find:()=>$('#findQ').focus()}[tab]||(()=>{}))())
     .catch(err=>{ const sec=$('#s-'+tab); const n=document.createElement('div'); n.className='empty'; n.style.marginTop='10px'; n.textContent=err.message+' Tap Refresh to try again.'; sec.prepend(n); setTimeout(()=>n.remove(),6000); });
 }
 $('#tabs').onclick=e=>{ const b=e.target.closest('button'); if(b) show(b.dataset.tab); };
@@ -401,6 +498,182 @@ $('#teamForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#tea
   try{ await post('/staff/team',{name:f.name.value,email:f.email.value,role:f.role.value,password:f.password.value}); f.reset(); loadTeam(); }
   catch(err){ $('#teamErr').textContent=err.message; } };
 
+/* ---------- shared: period picker ---------- */
+function periodPicker(el,onChange){
+  const presets=[['month','This month'],['last','Last month'],['7','Last 7 days'],['30','Last 30 days'],['custom','Custom']];
+  let mode='month', from='', to='';
+  function compute(){
+    const t=TODAY, y=+t.slice(0,4), m=+t.slice(5,7);
+    if(mode==='month'){ from=t.slice(0,8)+'01'; to=t; }
+    if(mode==='last'){ const d=new Date(Date.UTC(y,m-2,1)); from=d.toISOString().slice(0,10); to=new Date(Date.UTC(y,m-1,0)).toISOString().slice(0,10); }
+    if(mode==='7'){ from=addDays(t,-6); to=t; }
+    if(mode==='30'){ from=addDays(t,-29); to=t; }
+  }
+  function render(){
+    el.innerHTML=`<div class="chips">${presets.map(([k,l])=>`<button type="button" class="chip ${k===mode?'on':''}" data-p="${k}">${l}</button>`).join('')}</div>
+      ${mode==='custom'?`<input type="date" data-f value="${from}"> to <input type="date" data-t value="${to}"> <button type="button" class="btn ghost" data-go>Show</button>`:''}`;
+  }
+  el.addEventListener('click',e=>{ const c=e.target.closest('[data-p]'); if(c){ mode=c.dataset.p; if(mode!=='custom') compute(); render(); if(mode!=='custom') onChange(from,to); }
+    if(e.target.closest('[data-go]')){ from=el.querySelector('[data-f]').value; to=el.querySelector('[data-t]').value; onChange(from,to); } });
+  compute(); render();
+  return { get:()=>({from,to}) };
+}
+const pct=x=>Math.round(x*1000)/10+'%';
+const CHANNEL={online:'Website',walk_in:'Front desk'}, METHOD={cash:'Cash',pos:'POS',transfer:'Bank transfer',preview:'Preview (test)'};
+
+/* ---------- dashboard (owner) ---------- */
+let dashP=null, dashStatus='';
+async function loadDashboard(){
+  if(!dashP) dashP=periodPicker($('#dashPeriod'),()=>loadDashboard());
+  const {from,to}=dashP.get(); const q=`from=${from}&to=${to}`;
+  const d=await api('/owner/summary?'+q);
+  $('#dashStats').innerHTML=[
+    ['Money in',money(d.money_in),`${d.payments_count} payment${d.payments_count===1?'':'s'}`],
+    ['Expenses',money(d.expenses),d.pending_expenses?`${d.pending_expenses} waiting for approval`:'approved only'],
+    ['Net',money(d.net),'money in minus expenses'],
+    ['Occupancy',pct(d.occupancy),`${d.bed_nights_sold} of ${d.bed_nights_available} bed-nights`],
+    ['Bookings made',d.bookings_created,Object.entries(d.by_status).map(([k,v])=>`${v} ${STATUS[k]||k}`).join(' · ')||'none'],
+    ['Beds',d.beds,'in open rooms'],
+  ].map(([l,v,s])=>`<div class="stat"><b>${v}</b><span>${l}</span><small>${esc(s)}</small></div>`).join('');
+  // occupancy chart: y-axis scales to the busiest night (at least 10%), so early, quiet weeks stay readable
+  const W=Math.max(320,$('#dashChart').clientWidth||600), H=170, n=d.nights.length, step=(W-40)/n, bw=Math.max(2,step-2);
+  const occ=d.nights.map(x=>x.capacity?x.sold/x.capacity:0), top=Math.max(0.1,Math.ceil(Math.max(...occ)*10)/10), plot=H-34;
+  const peaksSet=new Set(); (window.CFG_PEAKS||[]).forEach(p=>d.nights.forEach(x=>{ if(x.date>=p.start_date&&x.date<=p.end_date) peaksSet.add(x.date); }));
+  const bars=d.nights.map((x,i)=>{ const v=occ[i], hgt=Math.round(v/top*plot);
+    return `<rect class="bar ${peaksSet.has(x.date)?'peak':''}" x="${40+i*step}" y="${H-20-hgt}" width="${bw}" height="${Math.max(hgt,1)}" rx="2"><title>${fmt(x.date)}: ${x.sold} of ${x.capacity} beds (${pct(v)}) · ${money(x.money_in)} in</title></rect>`; }).join('');
+  const labels=d.nights.map((x,i)=> (n<=14||i%Math.ceil(n/10)===0)?`<text x="${40+i*step}" y="${H-5}">${x.date.slice(8)}</text>`:'').join('');
+  $('#dashChart').setAttribute('viewBox',`0 0 ${W} ${H}`);
+  $('#dashChart').innerHTML=`<text x="0" y="${H-20-plot+4}">${Math.round(top*100)}%</text><text x="0" y="${H-20-plot/2+4}">${Math.round(top*50)}%</text><text x="0" y="${H-18}">0%</text>
+    <line x1="36" x2="${W}" y1="${H-20-plot}" y2="${H-20-plot}" stroke="var(--line)" stroke-dasharray="3 3"/><line x1="36" x2="${W}" y1="${H-20-plot/2}" y2="${H-20-plot/2}" stroke="var(--line)" stroke-dasharray="3 3"/>
+    <line x1="36" x2="${W}" y1="${H-20}" y2="${H-20}" stroke="var(--line)"/>${bars}${labels}`;
+  $('#dashChartNote').textContent=`Each bar is one night: share of beds booked${peaksSet.size?' (gold = peak period)':''}. Tap or hover a bar for details.`;
+  const line=(l,v)=>`<div class="rowline"><span>${esc(l)}</span><b>${esc(v)}</b></div>`;
+  $('#dashMoney').innerHTML=(Object.entries(d.by_method).map(([k,v])=>line(METHOD[k]||k,money(v))).join('')+Object.entries(d.by_channel).map(([k,v])=>line('Bookings via '+(CHANNEL[k]||k),money(v))).join(''))||'<div class="sub">No payments in this period.</div>';
+  $('#dashExp').innerHTML=Object.entries(d.expenses_by_category).sort((a,b)=>b[1]-a[1]).map(([k,v])=>line(k,money(v))).join('')||'<div class="sub">No approved expenses in this period.</div>';
+  $('#dashDl').innerHTML=[['Bookings','/api/owner/export/bookings.csv'],['Payments','/api/owner/export/payments.csv'],['Expenses','/api/expenses/export.csv']]
+    .map(([l,u])=>`<a class="btn ghost" href="${u}?${q}">Download ${l} (Excel/CSV)</a>`).join('');
+  const st=[['','All'],['confirmed','Paid'],['pending','Unpaid'],['checked_in','Checked in'],['checked_out','Checked out'],['no_show','No-show'],['cancelled','Cancelled']];
+  $('#dashStatus').innerHTML=st.map(([k,l])=>`<button type="button" class="chip ${k===dashStatus?'on':''}" data-ds="${k}">${l}</button>`).join('');
+  const b=await api(`/owner/bookings?${q}${dashStatus?'&status='+dashStatus:''}`);
+  $('#dashBookings').innerHTML=listOr(b.bookings.map(x=>({...x})),x=>card(x,{}),'No bookings start in this period.');
+}
+$('#dashStatus').onclick=e=>{ const c=e.target.closest('[data-ds]'); if(c){ dashStatus=c.dataset.ds; loadDashboard(); } };
+
+/* ---------- expenses (manager + owner) ---------- */
+let expP=null, expStatus='', expMeta=null;
+async function loadExpenses(){
+  if(!expMeta){
+    expMeta=await api('/expenses/meta'); const f=$('#expForm');
+    f.category.innerHTML=expMeta.categories.map(c=>`<option>${esc(c)}</option>`).join('');
+    f.room_id.innerHTML='<option value="">Not for a room</option>'+expMeta.rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
+    f.spent_on.value=expMeta.today; f.spent_on.max=expMeta.today;
+  }
+  $('#expSub').textContent=ME.role==='owner'?'Log every cost as it happens, with a photo of the receipt. Approve manager expenses waiting for you below.':`Log every cost as it happens, with a photo of the receipt. Expenses over ${money(expMeta.approval_limit)} need the owner's approval.`;
+  if(!expP) expP=periodPicker($('#expPeriod'),()=>loadExpenses());
+  const {from,to}=expP.get();
+  const d=await api(`/expenses?from=${from}&to=${to}${expStatus?'&status='+expStatus:''}`);
+  $('#expStats').innerHTML=`<div class="stat"><b>${money(d.approved_total)}</b><span>Approved spending</span><small>${fmt(from)} → ${fmt(to)}</small></div>
+    <div class="stat"><b>${d.pending}</b><span>Waiting for approval</span></div>`+
+    Object.entries(d.by_category).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`<div class="stat"><b>${money(v)}</b><span>${esc(k)}</span></div>`).join('');
+  const st=[['','All'],['pending','Waiting'],['approved','Approved'],['rejected','Rejected']];
+  $('#expStatus').innerHTML=st.map(([k,l])=>`<button type="button" class="chip ${k===expStatus?'on':''}" data-es="${k}">${l}</button>`).join('');
+  const EB={approved:'confirmed',pending:'pending',rejected:'no_show'};
+  $('#expList').innerHTML=listOr(d.expenses,e=>`<div class="bk">
+    <div class="row"><div><div class="nm">${money(e.amount)} · ${esc(e.category)}</div><div class="meta">${fmt(e.spent_on)}${e.room?' · '+esc(e.room):''}${e.paid_to?' · paid to '+esc(e.paid_to):''}${e.method?' · '+esc(METHOD[e.method]||e.method):''}</div></div>
+      <span class="badge b-${EB[e.status]}">${e.status==='pending'?'Waiting':e.status==='approved'?'Approved':'Rejected'}</span></div>
+    <div>${esc(e.description)}</div>
+    <div class="meta">Logged by ${esc(e.created_by||'—')}${e.reviewed_by?` · ${e.status} by ${esc(e.reviewed_by)}`:''}${e.review_note?' · '+esc(e.review_note):''}</div>
+    <div class="acts">${e.has_receipt?`<a class="btn ghost" href="/api/expenses/${e.id}/receipt" target="_blank" rel="noopener">View receipt</a>`:''}
+      ${ME.role==='owner'&&e.status==='pending'?`<button class="btn" data-act="expApprove" data-id="${e.id}">Approve</button><button class="btn red" data-act="expReject" data-id="${e.id}">Reject</button>`:''}</div>
+  </div>`,'No expenses in this period.');
+}
+$('#expStatus').onclick=e=>{ const c=e.target.closest('[data-es]'); if(c){ expStatus=c.dataset.es; loadExpenses(); } };
+// Shrink receipt photos before upload (max 1280px, JPEG).
+function shrinkImage(file){ return new Promise((resolve,reject)=>{
+  const img=new Image(), url=URL.createObjectURL(file);
+  img.onload=()=>{ const k=Math.min(1,1280/Math.max(img.width,img.height)); const c=document.createElement('canvas');
+    c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg',0.72)); };
+  img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('That file is not a photo we can read.')); };
+  img.src=url; }); }
+$('#expForm').onsubmit=async e=>{ e.preventDefault(); const f=e.target; $('#expErr').textContent=''; const btn=f.querySelector('button'); btn.disabled=true;
+  try{
+    const file=f.receipt.files[0]; const receipt=file?await shrinkImage(file):null;
+    const r=await post('/expenses',{spent_on:f.spent_on.value,amount:f.amount.value,category:f.category.value,description:f.description.value,room_id:f.room_id.value||null,paid_to:f.paid_to.value,method:f.method.value,receipt});
+    ['amount','description','paid_to'].forEach(n=>f[n].value=''); f.receipt.value='';
+    $('#expErr').innerHTML=`<span class="ok" style="display:inline-block">${r.needs_approval?'Saved. It is waiting for the owner\'s approval.':'Expense saved.'}</span>`;
+    setTimeout(()=>{ $('#expErr').textContent=''; },4000);
+    loadExpenses();
+  }catch(err){ $('#expErr').textContent=err.message; }
+  btn.disabled=false; };
+
+/* ---------- settings (owner) ---------- */
+let SET=null;
+function setErr(m){ $('#setErr').textContent=m||''; if(m) window.scrollTo({top:0,behavior:'smooth'}); }
+async function loadSettings(){ SET=await api('/owner/settings'); renderSettings(); }
+function renderSettings(){
+  const types=SET.room_types, open=types.filter(t=>!t.coming_soon);
+  $('#setTypes').innerHTML=types.map(t=>`<form class="set-card" data-type="${esc(t.id)}">
+    <div class="row">
+      <div class="field"><label>Name</label><input name="name" value="${esc(t.name)}"></div>
+      <div class="field"><label>Price per ${t.unit} per night (₦)</label><input name="base_price" inputmode="numeric" value="${t.base_price}"></div>
+      <label class="toggle"><input type="checkbox" name="open" ${t.coming_soon?'':'checked'}> Open for booking</label>
+      <button class="btn">Save</button>
+    </div></form>`).join('');
+  const peakForm=(p)=>`<form class="set-card" data-peak="${p?p.id:''}">
+    ${p?'':'<b>Add a peak period</b>'}
+    <div class="row">
+      <div class="field"><label>Name</label><input name="name" value="${p?esc(p.name):''}" placeholder="e.g. Holy Ghost Congress" required></div>
+      <div class="field"><label>First night</label><input type="date" name="start_date" value="${p?p.start_date:''}" required></div>
+      <div class="field"><label>Last night</label><input type="date" name="end_date" value="${p?p.end_date:''}" required></div>
+    </div>
+    <div class="row">${open.map(t=>`<div class="field"><label>${esc(t.name)} (₦)</label><input name="rate_${esc(t.id)}" inputmode="numeric" value="${p&&p.rates[t.id]!=null?p.rates[t.id]:''}" placeholder="normal ${t.base_price}"></div>`).join('')}</div>
+    <div class="row"><button class="btn">${p?'Save':'Add peak period'}</button>${p?`<button type="button" class="btn red" data-delpeak="${p.id}">Delete</button>`:''}</div>
+  </form>`;
+  $('#setPeaks').innerHTML=SET.peak_periods.map(peakForm).join('')+peakForm(null);
+  const G={female:'Female',male:'Male',mixed:'Mixed'};
+  $('#setRooms').innerHTML=SET.rooms.map(r=>{
+    const active=r.beds.filter(b=>b.active), reserve=active.filter(b=>!b.online).length;
+    return `<div class="set-card" data-room="${r.id}" style="${r.active?'':'opacity:.65'}">
+    <form class="row" data-roomform="${r.id}">
+      <div class="field"><label>Name</label><input name="name" value="${esc(r.name)}"></div>
+      <div class="field"><label>Room type</label><select name="room_type_id">${types.map(t=>`<option value="${esc(t.id)}" ${t.id===r.room_type_id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>
+      <div class="field"><label>Dorm</label><select name="gender">${Object.entries(G).map(([k,l])=>`<option value="${k}" ${k===r.gender?'selected':''}>${l}</option>`).join('')}</select></div>
+      <label class="toggle"><input type="checkbox" name="active" ${r.active?'checked':''}> In use</label>
+      <button class="btn">Save</button>
+    </form>
+    <form class="row" data-reserveform="${r.id}">
+      <div class="field" style="max-width:220px"><label>Walk-in reserve (of ${active.length} beds)</label><input name="reserve" type="number" min="0" max="${active.length}" value="${reserve}"></div>
+      <button class="btn ghost">Update reserve</button>
+    </form>
+    <div class="bedchips">${r.beds.map(b=>`<label>${esc(b.label)} <select data-bed="${b.id}">
+      <option value="online" ${b.active&&b.online?'selected':''}>Website</option><option value="reserve" ${b.active&&!b.online?'selected':''}>Walk-in</option><option value="off" ${!b.active?'selected':''}>Out of use</option></select></label>`).join('')}
+      <button type="button" class="btn ghost" data-addbed="${r.id}" style="padding:6px 10px">+ Bed</button></div>
+  </div>`; }).join('');
+  $('#addRoom').room_type_id.innerHTML=types.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  $('#setGeneral').expense_approval_limit.value=SET.expense_approval_limit;
+}
+async function saveSet(path,body,msg){ setErr(''); try{ SET=await post(path,body); renderSettings(); flash(msg||'Saved.'); }catch(err){ setErr(err.message); renderSettings(); } }
+function flash(m){ const n=document.createElement('div'); n.className='ok'; n.textContent=m; n.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.2)'; document.body.appendChild(n); setTimeout(()=>n.remove(),2200); }
+$('#s-settings').addEventListener('submit',e=>{ const f=e.target; e.preventDefault();
+  if(f.dataset.type) return saveSet('/owner/room-types/'+f.dataset.type,{name:f.name.value,base_price:f.base_price.value,coming_soon:!f.open.checked},'Price saved.');
+  if(f.dataset.peak!==undefined){ const rates={}; [...f.elements].filter(x=>x.name&&x.name.startsWith('rate_')).forEach(x=>rates[x.name.slice(5)]=x.value);
+    const body={name:f.name.value,start_date:f.start_date.value,end_date:f.end_date.value,rates};
+    return saveSet(f.dataset.peak?'/owner/peaks/'+f.dataset.peak:'/owner/peaks',body,'Peak period saved.'); }
+  if(f.dataset.roomform) return saveSet('/owner/rooms/'+f.dataset.roomform,{name:f.name.value,room_type_id:f.room_type_id.value,gender:f.gender.value,active:f.active.checked},'Room saved.');
+  if(f.dataset.reserveform) return saveSet(`/owner/rooms/${f.dataset.reserveform}/reserve`,{reserve:f.reserve.value},'Walk-in reserve updated.');
+  if(f.id==='addRoom') return saveSet('/owner/rooms',{name:f.name.value,room_type_id:f.room_type_id.value,gender:f.gender.value,beds:f.beds.value,reserve:f.reserve.value},'Room added.').then(()=>{ if(!$('#setErr').textContent) f.reset(); });
+  if(f.id==='setGeneral') return saveSet('/owner/settings/general',{expense_approval_limit:f.expense_approval_limit.value},'Approval limit saved.');
+});
+$('#s-settings').addEventListener('change',e=>{ const s=e.target.closest('[data-bed]'); if(!s) return;
+  const v=s.value; saveSet('/owner/beds/'+s.dataset.bed,{active:v!=='off',online:v==='online'},'Bed updated.'); });
+$('#s-settings').addEventListener('click',e=>{
+  const d=e.target.closest('[data-delpeak]'); if(d){ e.preventDefault(); actionForm('Delete peak period','<p class="sub">Nights in this period will go back to normal prices. Existing bookings keep the price they were booked at.</p>','Delete',async()=>{ await post(`/owner/peaks/${d.dataset.delpeak}/delete`); await loadSettings(); flash('Peak period deleted.'); }); }
+  const a=e.target.closest('[data-addbed]'); if(a){ const r=SET.rooms.find(x=>x.id==a.dataset.addbed);
+    actionForm(`Add a bed to ${esc(r.name)}`,`<div class="field"><label>Bed label</label><input name="label" value="${esc(r.name.slice(-1))}${r.beds.length+1}" required></div><label class="toggle"><input type="checkbox" name="online" checked> Show on the website (untick for walk-in reserve)</label>`,'Add bed',
+      async f=>{ SET=await post(`/owner/rooms/${r.id}/beds`,{label:f.get('label'),online:!!f.get('online')}); renderSettings(); flash('Bed added.'); }); }
+});
+
 /* ---------- modal & actions ---------- */
 function modal(html){ $('#mbox').innerHTML=html; $('#modal').classList.add('open'); }
 function closeModal(){ $('#modal').classList.remove('open'); }
@@ -461,6 +734,8 @@ document.addEventListener('click',async e=>{
         async f=>{ await post(`/staff/bookings/${ref}/no-show`,{note:f.get('note')}); return {ref,msg:'Marked as no-show.'}; });
     if(act==='cancel') return actionForm('Cancel booking','<p class="sub">All beds are released. If the guest paid, arrange their refund separately.</p><div class="field"><label>Reason</label><input name="reason" required></div>','Cancel booking',
         async f=>{ await post(`/staff/bookings/${ref}/cancel`,{reason:f.get('reason')}); return {ref,msg:'Booking cancelled.'}; });
+    if(act==='expApprove') return actionForm('Approve expense','<div class="field"><label>Note (optional)</label><input name="note"></div>','Approve',async f=>{ await post(`/expenses/${el.dataset.id}/approve`,{note:f.get('note')}); });
+    if(act==='expReject') return actionForm('Reject expense','<p class="sub">The manager will see it as rejected. Say why.</p><div class="field"><label>Reason</label><input name="note" required></div>','Reject',async f=>{ await post(`/expenses/${el.dataset.id}/reject`,{note:f.get('note')}); });
     if(act==='toggleUser'){ await post(`/staff/team/${el.dataset.id}/active`,{active:el.dataset.active==='1'}); return loadTeam(); }
   }catch(err){ modal(`<h3>Couldn't do that</h3><p class="err">${esc(err.message)}</p><button class="btn ghost" data-close>Close</button>`); }
 });

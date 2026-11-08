@@ -106,3 +106,27 @@ CREATE TABLE IF NOT EXISTS booking_events (
   user_id    INTEGER REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Business settings the owner can change (key/value).
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
+
+-- Operating expenses logged by the manager or owner.
+CREATE TABLE IF NOT EXISTS expenses (
+  id           SERIAL PRIMARY KEY,
+  spent_on     DATE NOT NULL,
+  category     TEXT NOT NULL,
+  room_id      INTEGER REFERENCES rooms(id),
+  description  TEXT NOT NULL,
+  amount       INTEGER NOT NULL,                   -- naira
+  paid_to      TEXT,
+  method       TEXT,                               -- cash, transfer, pos
+  receipt      TEXT,                               -- photo as a data URL (optional)
+  status       TEXT NOT NULL DEFAULT 'approved',   -- approved, pending, rejected
+  created_by   INTEGER REFERENCES users(id),
+  reviewed_by  INTEGER REFERENCES users(id),
+  review_note  TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
