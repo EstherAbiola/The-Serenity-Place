@@ -204,4 +204,23 @@ function payslip(p) {
   });
 }
 
-module.exports = { sendEmail, sendSafe, bookingConfirmation, paymentReceipt, applicationReceived, payslip };
+function extraPayment(x) {
+  if (!isEmail(x.email)) return;
+  sendSafe("extra_payment", {
+    to: x.email,
+    subject: `${x.kind_label} paid: ${money(x.amount)}`,
+    html: layout(`${x.kind_label} paid`, `
+      <p style="font-size:15px">Hello ${esc(x.name.split(" ")[0])}, well done. This payment has been made to you.</p>
+      ${table([
+        row("Type", esc(x.kind_label)),
+        x.period ? row("Period", esc(x.period)) : "",
+        row("For", esc(x.reason)),
+        row("Amount", money(x.amount)),
+        row("Method", esc(x.method_label || "")),
+        x.reference ? row("Reference", esc(x.reference)) : "",
+      ])}`),
+    text: `${x.kind_label} of ${money(x.amount)} paid: ${x.reason}.`,
+  });
+}
+
+module.exports = { sendEmail, sendSafe, bookingConfirmation, paymentReceipt, applicationReceived, payslip, extraPayment };

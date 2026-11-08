@@ -82,6 +82,16 @@ router.get("/me", ANY, h(async (req, res) => {
     shifts: shifts.filter((s) => shiftWindow(s).end > new Date()).map((s) => ({ id: s.id, date: db.toISODate(s.shift_date), name: s.name, start: s.start_time, end: s.end_time })),
     clocked_in: open[0] ? { since: open[0].clock_in, shift_id: open[0].shift_id } : null,
     target: { month, month_label: monthLabel(month), amount: t[0] ? Number(t[0].amount) : null, collected: collected.total, payments: collected.count },
+    birthday: await (async () => {
+      const { rows: u } = await db.query("SELECT birthday FROM users WHERE id = $1", [req.user.id]);
+      const bd = u[0] && u[0].birthday;
+      if (!bd) return { birthday: null, is_today: false, wishes: [] };
+      const isToday = nextBirthday(bd, today) === today;
+      const { rows: w } = isToday
+        ? await db.query("SELECT w.message, u.name AS from_name FROM birthday_wishes w JOIN users u ON u.id = w.from_user_id WHERE w.user_id = $1 AND w.year = $2 ORDER BY w.created_at", [req.user.id, Number(today.slice(0, 4))])
+        : { rows: [] };
+      return { birthday: bd, is_today: isToday, wishes: w };
+    })(),
   });
 }));
 
@@ -394,7 +404,174 @@ router.get("/payroll.csv", MANAGERS, h(async (req, res) => {
 // Staff see their own payslips.
 router.get("/my-payslips", ANY, h(async (req, res) => {
   const { rows } = await db.query("SELECT month, base, deductions, bonus, note, status, paid_at, method, reference FROM payroll WHERE user_id = $1 ORDER BY month DESC", [req.user.id]);
-  res.json({ payslips: rows.map((r) => ({ ...r, month_label: monthLabel(r.month), base: Number(r.base), deductions: Number(r.deductions), bonus: Number(r.bonus), net: Number(r.base) - Number(r.deductions) + Number(r.bonus) })) });
+  const extras = await extrasList("x.user_id = $1 AND x.status IN ('approved','paid')", [req.user.id]);
+  res.json({
+    payslips: rows.map((r) => ({ ...r, month_label: monthLabel(r.month), base: Number(r.base), deductions: Number(r.deductions), bonus: Number(r.bonus), net: Number(r.base) - Number(r.deductions) + Number(r.bonus) })),
+    extras: extras.map((x) => ({ kind_label: x.kind_label, period: x.period, amount: x.amount, reason: x.reason, status: x.status, paid_at: x.paid_at })),
+  });
+}));
+
+/* ---------------- birthdays ---------------- */
+
+const MD = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+function validBirthday(v) {
+  if (v === "" || v == null) return null;
+  if (!MD.test(v)) throw new BookingError("Choose a day and month for the birthday.");
+  const [m, d] = v.split("-").map(Number);
+  if (d > [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]) throw new BookingError("That date doesn't exist.");
+  return v;
+}
+// Next occurrence of a MM-DD birthday on or after today (29 Feb falls on 28 Feb in other years).
+function nextBirthday(md, today) {
+  const y = Number(today.slice(0, 4));
+  const isLeap = (yr) => (yr % 4 === 0 && yr % 100 !== 0) || yr % 400 === 0;
+  const on = (yr) => (md === "02-29" && !isLeap(yr) ? `${yr}-02-28` : `${yr}-${md}`);
+  return on(y) >= today ? on(y) : on(y + 1);
+}
+
+router.get("/birthdays", ANY, h(async (req, res) => {
+  const today = todayLagos(), year = Number(today.slice(0, 4));
+  const { rows } = await db.query("SELECT id, name, role, birthday FROM users WHERE active = TRUE ORDER BY name");
+  const people = rows.map((u) => {
+    if (!u.birthday) return { user_id: u.id, name: u.name, role: u.role, birthday: null };
+    const next = nextBirthday(u.birthday, today);
+    return { user_id: u.id, name: u.name, role: u.role, birthday: u.birthday, next, days: Math.round((Date.parse(next) - Date.parse(today)) / 864e5) };
+  });
+  const todays = people.filter((p) => p.days === 0);
+  const { rows: wishes } = await db.query(
+    `SELECT w.user_id, w.from_user_id, w.message, w.created_at, u.name AS from_name
+       FROM birthday_wishes w JOIN users u ON u.id = w.from_user_id WHERE w.year = $1 ORDER BY w.created_at`,
+    [year]
+  );
+  res.json({
+    today,
+    mine: people.find((p) => p.user_id === req.user.id) || null,
+    today_birthdays: todays.map((p) => ({ ...p, wishes: wishes.filter((w) => w.user_id === p.user_id), i_wished: wishes.some((w) => w.user_id === p.user_id && w.from_user_id === req.user.id) })),
+    upcoming: people.filter((p) => p.birthday && p.days > 0 && p.days <= 30).sort((a, b) => a.days - b.days),
+    people: req.user.role === "staff" ? undefined : people,
+  });
+}));
+
+// Set your own birthday.
+router.post("/birthday", ANY, h(async (req, res) => {
+  await db.query("UPDATE users SET birthday = $2 WHERE id = $1", [req.user.id, validBirthday(req.body?.birthday)]);
+  res.json({ ok: true });
+}));
+
+// Owner or manager sets a team member's birthday.
+router.post("/birthday/:userId", MANAGERS, h(async (req, res) => {
+  const r = await db.query("UPDATE users SET birthday = $2 WHERE id = $1 RETURNING id", [parseInt(req.params.userId, 10), validBirthday(req.body?.birthday)]);
+  if (!r.rows.length) throw new BookingError("Team member not found.", 404);
+  res.json({ ok: true });
+}));
+
+// Send (or update) birthday wishes to a teammate on their birthday.
+router.post("/birthdays/:userId/wish", ANY, h(async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (userId === req.user.id) throw new BookingError("You can't send wishes to yourself, but happy birthday!");
+  const message = text(req.body?.message, 300);
+  if (!message) throw new BookingError("Write a short message.");
+  const today = todayLagos(), year = Number(today.slice(0, 4));
+  const { rows } = await db.query("SELECT birthday FROM users WHERE id = $1 AND active = TRUE", [userId]);
+  if (!rows[0] || !rows[0].birthday || nextBirthday(rows[0].birthday, today) !== today) throw new BookingError("It's not their birthday today.");
+  await db.query("DELETE FROM birthday_wishes WHERE user_id = $1 AND from_user_id = $2 AND year = $3", [userId, req.user.id, year]);
+  await db.query("INSERT INTO birthday_wishes (user_id, from_user_id, year, message) VALUES ($1,$2,$3,$4)", [userId, req.user.id, year, message]);
+  res.status(201).json({ ok: true });
+}));
+
+/* ---------------- bonuses and off-cycle payments ---------------- */
+
+const EXTRA_KINDS = { bonus: "Bonus", quarterly: "Quarterly payment", target: "Target reward", other: "Other payment" };
+
+async function extrasList(where = "TRUE", params = []) {
+  const { rows } = await db.query(
+    `SELECT x.id, x.user_id, x.kind, x.period, x.amount, x.reason, x.status, x.paid_at, x.method, x.reference, x.review_note, x.created_at,
+            (x.receipt IS NOT NULL) AS has_receipt, u.name, u.email, u.role, c.name AS created_by_name, a.name AS approved_by_name, pb.name AS paid_by_name,
+            sp.bank_name, sp.account_number, sp.account_name
+       FROM extra_payments x JOIN users u ON u.id = x.user_id LEFT JOIN users c ON c.id = x.created_by LEFT JOIN users a ON a.id = x.approved_by
+       LEFT JOIN users pb ON pb.id = x.paid_by LEFT JOIN staff_pay sp ON sp.user_id = x.user_id
+      WHERE ${where} ORDER BY x.created_at DESC`,
+    params
+  );
+  return rows.map((r) => ({ ...r, amount: Number(r.amount), kind_label: EXTRA_KINDS[r.kind] || r.kind, has_receipt: Boolean(r.has_receipt) }));
+}
+
+router.get("/extras", MANAGERS, h(async (req, res) => {
+  const status = ["pending", "approved", "paid", "rejected"].includes(req.query.status) ? req.query.status : null;
+  const items = await extrasList(status ? "x.status = $1" : "TRUE", status ? [status] : []);
+  res.json({ kinds: EXTRA_KINDS, items,
+    totals: { pending: items.filter((i) => i.status === "pending").reduce((s, i) => s + i.amount, 0),
+              to_pay: items.filter((i) => i.status === "approved").reduce((s, i) => s + i.amount, 0) } });
+}));
+
+router.post("/extras", MANAGERS, h(async (req, res) => {
+  const b = req.body || {};
+  const userId = parseInt(b.user_id, 10);
+  const u = await db.query("SELECT id FROM users WHERE id = $1 AND active = TRUE", [userId]);
+  if (!u.rows.length) throw new BookingError("Choose who it's for.");
+  if (!EXTRA_KINDS[b.kind]) throw new BookingError("Choose the type of payment.");
+  const amount = toInt(b.amount, { min: 1, max: 100000000, name: "Amount" });
+  const reason = text(b.reason, 300);
+  if (!reason) throw new BookingError("Say what it's for, e.g. 'Hit November collection target'.");
+  const status = req.user.role === "owner" ? "approved" : "pending";
+  await db.query(
+    "INSERT INTO extra_payments (user_id, kind, period, amount, reason, status, created_by, approved_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+    [userId, b.kind, text(b.period, 40) || null, amount, reason, status, req.user.id, status === "approved" ? req.user.id : null]
+  );
+  res.status(201).json({ status });
+}));
+
+async function reviewExtra(req, res, status) {
+  const id = parseInt(req.params.id, 10);
+  const { rows } = await db.query("SELECT status FROM extra_payments WHERE id = $1", [id]);
+  if (!rows[0]) throw new BookingError("Payment not found.", 404);
+  if (rows[0].status !== "pending") throw new BookingError("This payment has already been reviewed.", 409);
+  await db.query("UPDATE extra_payments SET status=$2, approved_by=$3, review_note=$4 WHERE id=$1", [id, status, req.user.id, text(req.body?.note, 300) || null]);
+  res.json({ ok: true });
+}
+router.post("/extras/:id/approve", OWNER, h((req, res) => reviewExtra(req, res, "approved")));
+router.post("/extras/:id/reject", OWNER, h((req, res) => reviewExtra(req, res, "rejected")));
+
+router.post("/extras/:id/pay", MANAGERS, h(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { rows } = await db.query("SELECT status FROM extra_payments WHERE id = $1", [id]);
+  if (!rows[0]) throw new BookingError("Payment not found.", 404);
+  if (rows[0].status === "pending") throw new BookingError("The owner needs to approve this payment first.", 409);
+  if (rows[0].status !== "approved") throw new BookingError("This payment is already paid or was rejected.", 409);
+  const method = ["transfer", "cash"].includes(req.body?.method) ? req.body.method : null;
+  if (!method) throw new BookingError("Choose how it was paid.");
+  const reference = text(req.body?.reference, 80) || null;
+  let receipt = null;
+  if (req.body?.receipt) {
+    if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(req.body.receipt) || req.body.receipt.length > 1500000) throw new BookingError("The receipt must be a photo under about 1 MB.");
+    receipt = req.body.receipt;
+  }
+  if (method === "transfer" && !reference && !receipt) throw new BookingError("For a transfer, add the transaction reference or a photo of the receipt.");
+  await db.query("UPDATE extra_payments SET status='paid', paid_at=$2, method=$3, reference=$4, receipt=$5, paid_by=$6 WHERE id=$1",
+    [id, new Date().toISOString(), method, reference, receipt, req.user.id]);
+  const item = (await extrasList("x.id = $1", [id]))[0];
+  email.extraPayment({ ...item, method_label: method === "transfer" ? "Bank transfer" : "Cash" });
+  res.json({ ok: true });
+}));
+
+router.get("/extras/:id/receipt", MANAGERS, h(async (req, res) => {
+  const { rows } = await db.query("SELECT receipt FROM extra_payments WHERE id = $1", [parseInt(req.params.id, 10)]);
+  const r = rows[0] && rows[0].receipt;
+  if (!r) return res.status(404).json({ error: "No receipt." });
+  const m = /^data:(image\/[a-z]+);base64,(.+)$/.exec(r);
+  res.setHeader("Content-Type", m[1]);
+  res.send(Buffer.from(m[2], "base64"));
+}));
+
+router.get("/extras.csv", MANAGERS, h(async (req, res) => {
+  const items = await extrasList();
+  sendCsv(res, "bonuses_and_off_cycle_payments.csv", csv(items, [
+    { label: "Created", get: (r) => new Date(r.created_at).toLocaleDateString("en-GB", { timeZone: "Africa/Lagos" }) },
+    { label: "Staff", get: "name" }, { label: "Type", get: "kind_label" }, { label: "Period", get: "period" }, { label: "Amount (NGN)", get: "amount" },
+    { label: "Reason", get: "reason" }, { label: "Status", get: "status" }, { label: "Requested by", get: "created_by_name" }, { label: "Approved by", get: "approved_by_name" },
+    { label: "Paid on", get: (r) => (r.paid_at ? new Date(r.paid_at).toLocaleDateString("en-GB", { timeZone: "Africa/Lagos" }) : "") },
+    { label: "Method", get: "method" }, { label: "Reference", get: "reference" },
+  ]));
 }));
 
 /* ---------------- team settings (owner) ---------------- */
